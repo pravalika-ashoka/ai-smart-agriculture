@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
     registerUser,
     verifyRegistrationOTP,
-} from "./api";
+} from "../services/api";
 import "./Register.css";
 
 function Register() {

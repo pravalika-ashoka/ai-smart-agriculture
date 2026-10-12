@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
     loginUser,
     verifyLoginOTP
-} from "./api";
+} from "../services/api";
 import "./Login.css";
 
 function Login() {
