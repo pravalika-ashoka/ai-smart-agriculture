@@ -1,19 +1,22 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import {
+    loginUser,
+    verifyLoginOTP
+} from "./api";
 import "./Login.css";
-
-const API_URL =
-    import.meta.env.VITE_API_URL ||
-    "https://ai-smart-agriculture-production.up.railway.app";
 
 function Login() {
     const navigate = useNavigate();
 
     const [phoneNumber, setPhoneNumber] = useState("");
     const [password, setPassword] = useState("");
+    const [otp, setOtp] = useState("");
 
+    const [otpRequested, setOtpRequested] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
 
     // ========================================
     // CLEAR LOGIN FORM WHEN PAGE OPENS
@@ -22,161 +25,122 @@ function Login() {
     useEffect(() => {
         setPhoneNumber("");
         setPassword("");
+        setOtp("");
+        setOtpRequested(false);
         setError("");
+        setSuccess("");
 
-        // Remove temporary login form values
         sessionStorage.removeItem("loginPhone");
         sessionStorage.removeItem("loginPassword");
     }, []);
 
     // ========================================
-    // LOGIN
+    // REQUEST LOGIN OTP
     // ========================================
 
     const handleLogin = async (e) => {
         e.preventDefault();
 
-        setLoading(true);
         setError("");
+        setSuccess("");
+
+        if (!phoneNumber.trim()) {
+            setError("Please enter your phone number.");
+            return;
+        }
+
+        if (!password) {
+            setError("Please enter your password.");
+            return;
+        }
+
+        setLoading(true);
 
         try {
-            // ====================================
-            // VALIDATION
-            // ====================================
-
-            if (!phoneNumber.trim()) {
-                setError("Please enter your phone number.");
-                setLoading(false);
-                return;
-            }
-
-            if (!password) {
-                setError("Please enter your password.");
-                setLoading(false);
-                return;
-            }
-
-            // ====================================
-            // FASTAPI LOGIN FORM
-            // ====================================
-
-            const formData = new URLSearchParams();
-
-            formData.append(
-                "username",
-                phoneNumber.trim()
-            );
-
-            formData.append(
-                "password",
+            const data = await loginUser(
+                phoneNumber.trim(),
                 password
             );
 
-            // ====================================
-            // API REQUEST
-            // ====================================
-
-            const response = await fetch(
-                `${API_URL}/auth/login`,
-                {
-                    method: "POST",
-
-                    headers: {
-                        "Content-Type":
-                            "application/x-www-form-urlencoded",
-                    },
-
-                    body: formData,
-                }
+            setOtpRequested(true);
+            setOtp("");
+            setSuccess(
+                data.message ||
+                "OTP request processed. Enter the OTP sent to your phone."
             );
+        } catch (err) {
+            console.error("Login OTP request error:", err);
+            setError(err.message || "Unable to request login OTP.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
-            const data = await response.json();
+    // ========================================
+    // VERIFY LOGIN OTP
+    // ========================================
 
-            console.log(
-                "Login response:",
-                data
+    const handleVerifyOTP = async (e) => {
+        e.preventDefault();
+
+        setError("");
+        setSuccess("");
+
+        if (!/^\d{6}$/.test(otp.trim())) {
+            setError("Please enter the 6-digit OTP.");
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            const data = await verifyLoginOTP(
+                phoneNumber.trim(),
+                otp.trim()
             );
-
-            // ====================================
-            // LOGIN ERROR
-            // ====================================
-
-            if (!response.ok) {
-                let message = "Login failed.";
-
-                if (Array.isArray(data.detail)) {
-                    message = data.detail
-                        .map((item) =>
-                            typeof item === "object"
-                                ? item.msg || "Invalid input."
-                                : item
-                        )
-                        .join("\n");
-                }
-
-                else if (
-                    typeof data.detail === "string"
-                ) {
-                    message = data.detail;
-                }
-
-                setError(message);
-
-                return;
-            }
-
-            // ====================================
-            // CHECK TOKEN
-            // ====================================
 
             if (!data.access_token) {
                 setError(
-                    "Login succeeded but no access token was received."
+                    "OTP verification succeeded, but no access token was received."
                 );
-
                 return;
             }
 
-            // ====================================
-            // SAVE AUTH TOKEN
-            // ====================================
-
+            // Save token only after OTP verification.
             localStorage.setItem(
                 "token",
                 data.access_token
             );
 
-            // ====================================
-            // CLEAR LOGIN FORM
-            // ====================================
-
+            // Clear authentication form values.
             setPhoneNumber("");
             setPassword("");
+            setOtp("");
+            setOtpRequested(false);
             setError("");
-
-            // ====================================
-            // GO TO DASHBOARD
-            // ====================================
+            setSuccess("");
 
             navigate("/dashboard");
-
-        }
-
-        catch (err) {
-
-            console.error(
-                "Login error:",
-                err
-            );
-
+        } catch (err) {
+            console.error("OTP verification error:", err);
             setError(
-                "Unable to connect to the backend."
+                err.message ||
+                "OTP verification failed. Please try again."
             );
-        }
-
-        finally {
+        } finally {
             setLoading(false);
         }
+    };
+
+    // ========================================
+    // RETURN TO PASSWORD FORM
+    // ========================================
+
+    const handleChangePhoneOrPassword = () => {
+        setOtpRequested(false);
+        setOtp("");
+        setError("");
+        setSuccess("");
     };
 
     // ========================================
@@ -185,15 +149,11 @@ function Login() {
 
     return (
         <div className="login-page">
-
             <div className="login-container">
 
-                {/* ==================================
-                    AI SMART AGRICULTURE BRANDING
-                    ================================== */}
+                {/* BRANDING */}
 
                 <div className="login-branding">
-
                     <img
                         src="/logo.png"
                         alt="AI Smart Agriculture"
@@ -207,129 +167,183 @@ function Login() {
                     <p className="login-brand-subtitle">
                         Smart Farming • Better Tomorrow
                     </p>
-
                 </div>
 
-
-                {/* ==================================
-                    LOGIN TITLE
-                    ================================== */}
+                {/* TITLE */}
 
                 <h2 className="login-heading">
-                    Login
+                    {otpRequested
+                        ? "Verify Login OTP"
+                        : "Login"}
                 </h2>
 
+                {/* REQUEST OTP FORM */}
 
-                {/* ==================================
-                    LOGIN FORM
-                    ================================== */}
+                {!otpRequested && (
+                    <form
+                        onSubmit={handleLogin}
+                        autoComplete="off"
+                    >
+                        <div className="form-group">
+                            <label htmlFor="phoneNumber">
+                                Phone Number
+                            </label>
 
-                <form
-                    onSubmit={handleLogin}
-                    autoComplete="off"
-                >
-
-                    {/* PHONE NUMBER */}
-
-                    <div className="form-group">
-
-                        <label htmlFor="phoneNumber">
-                            Phone Number
-                        </label>
-
-                        <input
-                            id="phoneNumber"
-                            name="login-phone"
-                            type="tel"
-                            value={phoneNumber}
-                            onChange={(e) =>
-                                setPhoneNumber(
-                                    e.target.value
-                                )
-                            }
-                            placeholder="Enter your phone number"
-                            autoComplete="off"
-                            required
-                        />
-
-                    </div>
-
-
-                    {/* PASSWORD */}
-
-                    <div className="form-group">
-
-                        <label htmlFor="password">
-                            Password
-                        </label>
-
-                        <input
-                            id="password"
-                            name="login-password"
-                            type="password"
-                            value={password}
-                            onChange={(e) =>
-                                setPassword(
-                                    e.target.value
-                                )
-                            }
-                            placeholder="Enter your password"
-                            autoComplete="new-password"
-                            required
-                        />
-
-                    </div>
-
-
-                    {/* ERROR */}
-
-                    {error && (
-
-                        <div className="login-error">
-                            {error}
+                            <input
+                                id="phoneNumber"
+                                name="login-phone"
+                                type="tel"
+                                value={phoneNumber}
+                                onChange={(e) =>
+                                    setPhoneNumber(e.target.value)
+                                }
+                                placeholder="Enter your phone number"
+                                autoComplete="off"
+                                required
+                            />
                         </div>
 
-                    )}
-                    {/* FORGOT PASSWORD */}
+                        <div className="form-group">
+                            <label htmlFor="password">
+                                Password
+                            </label>
 
-                    <div className="forgot-password-link">
+                            <input
+                                id="password"
+                                name="login-password"
+                                type="password"
+                                value={password}
+                                onChange={(e) =>
+                                    setPassword(e.target.value)
+                                }
+                                placeholder="Enter your password"
+                                autoComplete="current-password"
+                                required
+                            />
+                        </div>
 
-                        <Link to="/forgot-password">
-                            Forgot Password?
-                        </Link>
+                        {/* FORGOT PASSWORD */}
 
-                    </div>
+                        <div className="forgot-password-link">
+                            <Link to="/forgot-password">
+                                Forgot Password?
+                            </Link>
+                        </div>
 
-                    {/* LOGIN BUTTON */}
+                        {error && (
+                            <div
+                                className="login-error"
+                                role="alert"
+                            >
+                                {error}
+                            </div>
+                        )}
 
-                    <button
-                        type="submit"
-                        disabled={loading}
+                        {success && (
+                            <div
+                                className="login-success"
+                                role="status"
+                            >
+                                {success}
+                            </div>
+                        )}
+
+                        <button
+                            type="submit"
+                            disabled={loading}
+                        >
+                            {loading
+                                ? "Requesting OTP..."
+                                : "Send Login OTP"}
+                        </button>
+                    </form>
+                )}
+
+                {/* OTP VERIFICATION FORM */}
+
+                {otpRequested && (
+                    <form
+                        onSubmit={handleVerifyOTP}
+                        autoComplete="off"
                     >
+                        <p>
+                            Enter the 6-digit OTP sent to your
+                            registered phone number.
+                        </p>
 
-                        {loading
-                            ? "Logging in..."
-                            : "Login"}
+                        <div className="form-group">
+                            <label htmlFor="loginOtp">
+                                Verification OTP
+                            </label>
 
-                    </button>
+                            <input
+                                id="loginOtp"
+                                name="login-otp"
+                                type="text"
+                                inputMode="numeric"
+                                autoComplete="one-time-code"
+                                value={otp}
+                                onChange={(e) =>
+                                    setOtp(
+                                        e.target.value
+                                            .replace(/\D/g, "")
+                                            .slice(0, 6)
+                                    )
+                                }
+                                placeholder="Enter 6-digit OTP"
+                                maxLength={6}
+                                required
+                            />
+                        </div>
 
-                </form>
+                        {error && (
+                            <div
+                                className="login-error"
+                                role="alert"
+                            >
+                                {error}
+                            </div>
+                        )}
 
+                        {success && (
+                            <div
+                                className="login-success"
+                                role="status"
+                            >
+                                {success}
+                            </div>
+                        )}
 
-                {/* REGISTER */}
+                        <button
+                            type="submit"
+                            disabled={loading}
+                        >
+                            {loading
+                                ? "Verifying..."
+                                : "Verify OTP & Login"}
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={handleChangePhoneOrPassword}
+                            disabled={loading}
+                            className="secondary-button"
+                        >
+                            Back to Login
+                        </button>
+                    </form>
+                )}
+
+                {/* REGISTER LINK */}
 
                 <p className="register-link">
-
                     New Farmer?{" "}
 
                     <Link to="/register">
                         Register
                     </Link>
-
                 </p>
-
             </div>
-
         </div>
     );
 }

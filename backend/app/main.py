@@ -38,6 +38,7 @@ from app.models.user import User
 from app.models.prediction import Prediction
 from app.models.notification import Notification
 from app.models.sms_relay_device import SmsRelayDevice
+from app.models.sms_message import SmsMessage
 
 # Password reset model
 from app.models.password_reset import PasswordReset
