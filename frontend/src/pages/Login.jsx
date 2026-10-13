@@ -64,13 +64,17 @@ function Login() {
 
             setOtpRequested(true);
             setOtp("");
+
             setSuccess(
                 data.message ||
                 "OTP request processed. Enter the OTP sent to your phone."
             );
         } catch (err) {
             console.error("Login OTP request error:", err);
-            setError(err.message || "Unable to request login OTP.");
+
+            setError(
+                err.message || "Unable to request login OTP."
+            );
         } finally {
             setLoading(false);
         }
@@ -106,13 +110,13 @@ function Login() {
                 return;
             }
 
-            // Save token only after OTP verification.
+            // Save the token only after successful OTP verification.
             localStorage.setItem(
                 "token",
                 data.access_token
             );
 
-            // Clear authentication form values.
+            // Clear login details after successful login.
             setPhoneNumber("");
             setPassword("");
             setOtp("");
@@ -120,9 +124,15 @@ function Login() {
             setError("");
             setSuccess("");
 
-            navigate("/dashboard");
+            // Remove any previously stored login details.
+            sessionStorage.removeItem("loginPhone");
+            sessionStorage.removeItem("loginPassword");
+
+            // Navigate to the dashboard.
+            navigate("/dashboard", { replace: true });
         } catch (err) {
             console.error("OTP verification error:", err);
+
             setError(
                 err.message ||
                 "OTP verification failed. Please try again."
@@ -133,14 +143,20 @@ function Login() {
     };
 
     // ========================================
-    // RETURN TO PASSWORD FORM
+    // RETURN TO LOGIN FORM
     // ========================================
 
     const handleChangePhoneOrPassword = () => {
-        setOtpRequested(false);
+        setPhoneNumber("");
+        setPassword("");
         setOtp("");
+
+        setOtpRequested(false);
         setError("");
         setSuccess("");
+
+        sessionStorage.removeItem("loginPhone");
+        sessionStorage.removeItem("loginPassword");
     };
 
     // ========================================
@@ -199,6 +215,8 @@ function Login() {
                                 }
                                 placeholder="Enter your phone number"
                                 autoComplete="off"
+                                autoCorrect="off"
+                                spellCheck={false}
                                 required
                             />
                         </div>
@@ -217,7 +235,7 @@ function Login() {
                                     setPassword(e.target.value)
                                 }
                                 placeholder="Enter your password"
-                                autoComplete="current-password"
+                                autoComplete="off"
                                 required
                             />
                         </div>
@@ -343,6 +361,7 @@ function Login() {
                         Register
                     </Link>
                 </p>
+
             </div>
         </div>
     );
