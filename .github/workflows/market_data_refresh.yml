@@ -26,6 +26,53 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Check Data.gov.in connectivity
+        run: |
+          python - <<'PY'
+          import socket
+          import ssl
+          import urllib.request
+          from urllib.error import URLError
+
+          host = "api.data.gov.in"
+
+          print(f"Checking DNS for {host}...")
+
+          try:
+              addresses = sorted({
+                  item[4][0]
+                  for item in socket.getaddrinfo(
+                      host, 443, type=socket.SOCK_STREAM
+                  )
+              })
+              print(f"DNS resolved successfully: {addresses}")
+          except OSError as exc:
+              print(f"DNS lookup failed: {exc!r}")
+              raise
+
+          print("Testing HTTPS connectivity without exposing API credentials...")
+
+          request = urllib.request.Request(
+              f"https://{host}/",
+              headers={"User-Agent": "AI-Smart-Agriculture/1.0"},
+          )
+
+          try:
+              with urllib.request.urlopen(request, timeout=20) as response:
+                  print(f"HTTPS connection successful: HTTP {response.status}")
+          except urllib.error.HTTPError as exc:
+              # An HTTP response means the HTTPS connection was established.
+              print(f"HTTPS connection established; server returned HTTP {exc.code}")
+          except (URLError, TimeoutError, OSError) as exc:
+              print(f"HTTPS connection failed: {exc!r}")
+              if isinstance(exc, URLError):
+                  print(f"Underlying reason: {exc.reason!r}")
+              print(
+                  "Continuing to the actual API request so its result "
+                  "can be diagnosed separately."
+              )
+          PY
+
       - name: Fetch official Data.gov.in market data
         env:
           DATA_GOV_API_KEY: ${{ secrets.DATA_GOV_API_KEY }}
@@ -43,6 +90,7 @@ jobs:
 
           RESOURCE_ID = "9ef84268-d588-465a-a308-a864a43d0070"
           API_URL = f"https://api.data.gov.in/resource/{RESOURCE_ID}"
+
           STATE = "Karnataka"
           PAGE_SIZE = 100
           MAX_RECORDS = 100000
@@ -56,13 +104,14 @@ jobs:
                   "DATA_GOV_API_KEY is missing from GitHub Secrets."
               )
 
-          def fetch_page(offset):
+          def fetch_page(offset, requested):
               params = {
                   "api-key": api_key,
                   "format": "json",
-                  "limit": PAGE_SIZE,
+                  "limit": requested,
                   "offset": offset,
               }
+
               url = API_URL + "?" + urlencode(params)
 
               for attempt in range(MAX_RETRIES):
@@ -95,33 +144,50 @@ jobs:
                       return records
 
                   except HTTPError as exc:
-                      # Retry temporary server and rate-limit errors.
-                      if exc.code not in (408, 425, 429, 500, 502, 503, 504):
+                      # Do not print the URL: it contains the API key.
+                      if exc.code not in (
+                          408, 425, 429, 500, 502, 503, 504
+                      ):
                           raise RuntimeError(
-                              f"Data.gov.in returned HTTP {exc.code}."
+                              f"Data.gov.in returned HTTP {exc.code}. "
+                              "Check the API response and configured secret."
                           ) from None
 
                       if attempt == MAX_RETRIES - 1:
                           raise RuntimeError(
-                              f"HTTP {exc.code} after {MAX_RETRIES} attempts."
+                              f"HTTP {exc.code} after "
+                              f"{MAX_RETRIES} attempts."
                           ) from None
 
                       delay = min(60, 5 * (2 ** attempt)) + random.random()
+
                       print(
-                          f"HTTP {exc.code}; retrying in "
-                          f"{delay:.1f} seconds."
+                          f"HTTP {exc.code} at offset {offset}; "
+                          f"retrying in {delay:.1f} seconds."
                       )
                       time.sleep(delay)
 
                   except (URLError, TimeoutError, ConnectionError, OSError) as exc:
+                      print(
+                          f"Network error type: {type(exc).__name__}"
+                      )
+                      print(
+                          f"Network error details: {exc!r}"
+                      )
+
+                      if isinstance(exc, URLError):
+                          print(
+                              f"Underlying reason: {exc.reason!r}"
+                          )
+
                       if attempt == MAX_RETRIES - 1:
                           raise RuntimeError(
                               f"Connection failed at offset {offset} "
-                              f"after {MAX_RETRIES} attempts: "
-                              f"{type(exc).__name__}"
-                          ) from None
+                              f"after {MAX_RETRIES} attempts: {exc!r}"
+                          ) from exc
 
                       delay = min(60, 5 * (2 ** attempt)) + random.random()
+
                       print(
                           f"Network error at offset {offset}; "
                           f"retrying in {delay:.1f} seconds."
@@ -130,18 +196,19 @@ jobs:
 
               raise RuntimeError("Request retries exhausted.")
 
+          # Fetch records into memory first. Never overwrite the existing
+          # cache unless fetching and validation both succeed.
           all_records = []
           offset = 0
 
           while offset < MAX_RECORDS:
-              remaining = MAX_RECORDS - offset
-              requested = min(PAGE_SIZE, remaining)
+              requested = min(PAGE_SIZE, MAX_RECORDS - offset)
 
               print(
                   f"Fetching offset={offset}, limit={requested}"
               )
 
-              page = fetch_page(offset)
+              page = fetch_page(offset, requested)
 
               print(f"Records received: {len(page)}")
 
@@ -149,10 +216,13 @@ jobs:
                   print("No more records available.")
                   break
 
-              all_records.extend(
-                  record for record in page if isinstance(record, dict)
-              )
+              if not all(isinstance(record, dict) for record in page):
+                  raise RuntimeError(
+                      f"Invalid record format at offset {offset}. "
+                      "Existing cache preserved."
+                  )
 
+              all_records.extend(page)
               offset += len(page)
 
               print(f"Total records fetched: {len(all_records)}")
@@ -173,7 +243,10 @@ jobs:
           karnataka_records = []
 
           for record in all_records:
-              if str(record.get("state", "")).strip().casefold() != STATE.casefold():
+              if (
+                  str(record.get("state", "")).strip().casefold()
+                  != STATE.casefold()
+              ):
                   continue
 
               karnataka_records.append({
@@ -193,7 +266,15 @@ jobs:
           seen = set()
 
           for record in karnataka_records:
-              key = tuple(record.values())
+              key = tuple(
+                  json.dumps(
+                      value,
+                      sort_keys=True,
+                      ensure_ascii=False,
+                      default=str,
+                  )
+                  for value in record.values()
+              )
 
               if key in seen:
                   continue
@@ -204,6 +285,7 @@ jobs:
           if not unique_records:
               raise RuntimeError(
                   "No Karnataka records found in the fetched data. "
+                  "The API may have returned records from other states. "
                   "Existing cache preserved."
               )
 
@@ -220,15 +302,23 @@ jobs:
           cache_path = Path("backend/data/market_cache.json")
           cache_path.parent.mkdir(parents=True, exist_ok=True)
 
+          # Write to a temporary file and replace the cache only after
+          # successful fetching, filtering, and serialization.
           temporary_path = cache_path.with_suffix(".json.tmp")
+
           temporary_path.write_text(
-              json.dumps(cache, indent=2, ensure_ascii=False),
+              json.dumps(
+                  cache,
+                  indent=2,
+                  ensure_ascii=False,
+              ),
               encoding="utf-8",
           )
+
           temporary_path.replace(cache_path)
 
           print("=" * 60)
-          print("MARKET DATA CACHE UPDATED")
+          print("MARKET DATA CACHE UPDATED SUCCESSFULLY")
           print(f"API records fetched: {len(all_records)}")
           print(f"Karnataka records: {len(karnataka_records)}")
           print(f"Unique records saved: {len(unique_records)}")
