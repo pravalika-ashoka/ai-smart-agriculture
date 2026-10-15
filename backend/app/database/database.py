@@ -8,6 +8,20 @@ DATABASE_URL = os.getenv(
     "sqlite:///./smart_agriculture.db"
 )
 
+# Use psycopg2, which is installed through psycopg2-binary
+if DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace(
+        "postgresql://",
+        "postgresql+psycopg2://",
+        1
+    )
+elif DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace(
+        "postgres://",
+        "postgresql+psycopg2://",
+        1
+    )
+
 connect_args = {}
 
 if DATABASE_URL.startswith("sqlite"):
