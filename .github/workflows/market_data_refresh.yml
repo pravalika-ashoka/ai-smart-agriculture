@@ -1,0 +1,97 @@
+name: Refresh Karnataka Market Data
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-market-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Test Data.gov.in API
+        env:
+          DATA_GOV_API_KEY: ${{ secrets.DATA_GOV_API_KEY }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import socket
+          from urllib.parse import urlencode
+          from urllib.request import Request, urlopen
+
+          resource_id = "9ef84268-d588-465a-a308-a864a43d0070"
+          host = "api.data.gov.in"
+          port = 443
+
+          print("Step 1: Checking DNS...")
+          try:
+              print(socket.getaddrinfo(host, port)[0][4][0])
+          except Exception as exc:
+              raise SystemExit(f"DNS lookup failed: {exc}")
+
+          print("Step 2: Checking HTTPS connectivity...")
+          try:
+              with socket.create_connection((host, port), timeout=10):
+                  print("TCP connection successful.")
+          except Exception as exc:
+              raise SystemExit(
+                  f"Cannot connect to {host}:{port}: {exc}"
+              )
+
+          api_key = os.environ.get("DATA_GOV_API_KEY", "").strip()
+          if not api_key:
+              raise SystemExit(
+                  "DATA_GOV_API_KEY is missing or empty in GitHub Secrets."
+              )
+
+          print("Step 3: Sending a small authenticated API request...")
+          params = {
+              "api-key": api_key,
+              "format": "json",
+              "limit": 1,
+              "offset": 0,
+          }
+
+          url = (
+              f"https://{host}/resource/{resource_id}?"
+              + urlencode(params)
+          )
+
+          request = Request(
+              url,
+              headers={"User-Agent": "AI-Smart-Agriculture/1.0"},
+          )
+
+          try:
+              with urlopen(request, timeout=30) as response:
+                  status = response.status
+                  payload = json.loads(
+                      response.read().decode("utf-8")
+                  )
+
+              print(f"HTTP status: {status}")
+
+              if not isinstance(payload, dict):
+                  raise SystemExit("Unexpected API response format.")
+
+              records = payload.get("records", [])
+              print(f"Records returned: {len(records)}")
+              print("API connectivity test completed.")
+
+          except Exception as exc:
+              raise SystemExit(
+                  f"Authenticated API request failed: {exc}"
+              )
+          PY
