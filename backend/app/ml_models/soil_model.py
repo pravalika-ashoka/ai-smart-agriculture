@@ -43,7 +43,6 @@ FEATURES = [
     "nitrogen",
     "phosphorus",
     "potassium",
-    "ph",
     "moisture",
     "temperature"
 ]

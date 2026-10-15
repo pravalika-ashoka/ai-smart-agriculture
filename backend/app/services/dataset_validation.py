@@ -5,7 +5,6 @@ CROP_REQUIRED_COLUMNS = [
     "nitrogen",
     "phosphorus",
     "potassium",
-    "ph",
     "moisture",
     "temperature",
     "rainfall",

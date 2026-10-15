@@ -8,8 +8,6 @@ def preprocess_soil(soil):
 
         float(soil.potassium),
 
-        float(soil.ph),
-
         float(soil.moisture),
 
         float(soil.temperature)

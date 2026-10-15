@@ -9,8 +9,7 @@ function IoT() {
         humidity: "",
         nitrogen: "",
         phosphorus: "",
-        potassium: "",
-        ph: ""
+        potassium: ""
     });
 
     const [loading, setLoading] = useState(true);
@@ -75,11 +74,6 @@ function IoT() {
 
                 potassium:
                     sensor.potassium ??
-                    "",
-
-                ph:
-                    sensor.ph ??
-                    sensor.pH ??
                     ""
             });
 
@@ -456,27 +450,6 @@ function IoT() {
 
                         </div>
 
-
-                        {/* PH */}
-
-                        <div className="iot-field">
-
-                            <label>
-                                Soil pH
-                            </label>
-
-                            <input
-                                type="text"
-                                value={
-                                    sensorData.ph !== ""
-                                        ? sensorData.ph
-                                        : "--"
-                                }
-                                readOnly
-                            />
-
-                        </div>
-
                     </div>
 
 
@@ -629,22 +602,6 @@ function IoT() {
 
                         </div>
 
-
-                        <div className="sensor-card">
-
-                            <span>
-                                Soil pH
-                            </span>
-
-                            <strong>
-                                {sensorData.ph !== ""
-                                    ? sensorData.ph
-                                    : "--"
-                                }
-                            </strong>
-
-                        </div>
-
                     </div>
 
 
@@ -749,7 +706,6 @@ function IoT() {
                                         <th>Nitrogen</th>
                                         <th>Phosphorus</th>
                                         <th>Potassium</th>
-                                        <th>Soil pH</th>
                                     </tr>
 
                                 </thead>
@@ -797,10 +753,6 @@ function IoT() {
 
                                             <td>
                                                 {reading.potassium ?? "--"}
-                                            </td>
-
-                                            <td>
-                                                {reading.ph ?? "--"}
                                             </td>
 
                                         </tr>

@@ -24,7 +24,6 @@ latest_sensor_data = {
     "nitrogen": 80.0,
     "phosphorus": 45.0,
     "potassium": 50.0,
-    "ph": 6.5
 }
 
 
@@ -62,7 +61,6 @@ def get_latest_sensor_data(db: Session = Depends(get_db)):
             "nitrogen": reading.nitrogen,
             "phosphorus": reading.phosphorus,
             "potassium": reading.potassium,
-            "ph": reading.ph
         }
     else:
         data = latest_sensor_data
@@ -133,7 +131,6 @@ def get_sensor_history(
                 "nitrogen": r.nitrogen,
                 "phosphorus": r.phosphorus,
                 "potassium": r.potassium,
-                "ph": r.ph,
                 "recorded_at": r.recorded_at
             }
             for r in readings

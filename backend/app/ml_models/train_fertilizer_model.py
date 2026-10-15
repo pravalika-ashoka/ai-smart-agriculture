@@ -78,8 +78,6 @@ metadata = {
 
         "potassium",
 
-        "ph",
-
         "moisture",
 
         "temperature"

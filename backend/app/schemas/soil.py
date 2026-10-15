@@ -5,7 +5,6 @@ class SoilRequest(BaseModel):
     nitrogen: float
     phosphorus: float
     potassium: float
-    ph: float
     moisture: float
     temperature: float
 

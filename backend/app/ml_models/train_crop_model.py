@@ -48,7 +48,6 @@ FEATURE_COLUMNS = [
     "potassium",
     "temperature",
     "humidity",
-    "ph",
     "rainfall"
 ]
 

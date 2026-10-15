@@ -46,12 +46,6 @@ class IrrigationInput(BaseModel):
 
     potassium: float
 
-    ph: float = Field(
-        ge=0,
-        le=14
-    )
-
-
 # =========================================================
 # IRRIGATION RESPONSE
 # =========================================================

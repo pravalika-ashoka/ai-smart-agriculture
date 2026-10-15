@@ -38,8 +38,6 @@ def analyze_soil(
 
             data.potassium,
 
-            data.ph,
-
             data.moisture,
 
             data.temperature

@@ -120,12 +120,6 @@ def create_dataset():
         55, 58, 60, 62
     ]
 
-    ph_values = [
-        6.0, 6.1, 6.2, 6.3, 6.4,
-        6.5, 6.6, 6.7, 6.8, 6.9,
-        7.0, 7.1, 7.2, 7.3
-    ]
-
 
     df["nitrogen"] = [
         nitrogen_values[i % len(nitrogen_values)]
@@ -139,11 +133,6 @@ def create_dataset():
 
     df["potassium"] = [
         potassium_values[i % len(potassium_values)]
-        for i in range(len(df))
-    ]
-
-    df["ph"] = [
-        ph_values[i % len(ph_values)]
         for i in range(len(df))
     ]
 
@@ -195,7 +184,6 @@ def create_dataset():
         "nitrogen",
         "phosphorus",
         "potassium",
-        "ph",
 
         "crop_type",
         "crop_water_factor",

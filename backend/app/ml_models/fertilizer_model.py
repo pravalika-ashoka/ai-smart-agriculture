@@ -46,8 +46,6 @@ FEATURE_NAMES = [
 
     "potassium",
 
-    "ph",
-
     "moisture",
 
     "temperature"
@@ -93,8 +91,6 @@ def prepare_fertilizer_data():
         "phosphorus",
 
         "potassium",
-
-        "ph",
 
         "moisture",
 

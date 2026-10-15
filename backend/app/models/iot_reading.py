@@ -18,8 +18,6 @@ class IoTReading(Base):
     phosphorus = Column(Float, nullable=False)
     potassium = Column(Float, nullable=False)
 
-    ph = Column(Float, nullable=False)
-
     recorded_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),

@@ -36,9 +36,3 @@ class IoTSensorData(BaseModel):
         ...,
         ge=0
     )
-
-    ph: float = Field(
-        ...,
-        ge=0,
-        le=14
-    )

@@ -68,8 +68,6 @@ FEATURE_COLUMNS = [
 
     "potassium",
 
-    "ph",
-
     "crop_water_factor",
 
 ]

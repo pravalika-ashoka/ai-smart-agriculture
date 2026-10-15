@@ -67,6 +67,7 @@ from app.api.market import router as market_router
 from app.api.disease import router as disease_router
 from app.api.sms_relay import router as sms_relay_router
 from app.api import iot_export
+from app.api import iot_ai
 
 # =========================================================
 # CREATE DATABASE TABLES
@@ -138,6 +139,7 @@ app.include_router(market_router)
 app.include_router(disease_router)
 app.include_router(sms_relay_router)
 app.include_router(iot_export.router)
+app.include_router(iot_ai.router)
 # =========================================================
 # ROOT
 # =========================================================

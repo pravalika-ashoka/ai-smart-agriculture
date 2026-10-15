@@ -12,7 +12,6 @@ class CropInput(BaseModel):
         potassium
         temperature
         humidity
-        ph
         rainfall
     """
 
@@ -28,12 +27,6 @@ class CropInput(BaseModel):
         ...,
         ge=0,
         le=100
-    )
-
-    ph: float = Field(
-        ...,
-        ge=0,
-        le=14
     )
 
     rainfall: float = Field(

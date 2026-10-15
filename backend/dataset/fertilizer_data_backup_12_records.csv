@@ -1,13 +1,13 @@
-﻿nitrogen,phosphorus,potassium,ph,moisture,temperature,recommended_fertilizer,advice
-20,10,15,5.0,20,38,Urea,"Nitrogen is low; nitrogen fertilizer is recommended."
-30,15,20,5.5,25,35,Urea,"Nitrogen is relatively low; apply a suitable nitrogen fertilizer."
-40,20,25,6.0,30,32,DAP,"Nitrogen and phosphorus are moderate; DAP can support nutrient balance."
-50,25,30,6.2,35,30,NPK 10-26-26,"Balanced NPK supplementation is recommended, especially for phosphorus."
-60,30,35,6.5,40,28,NPK 10-10-10,"A balanced NPK fertilizer is suitable for maintaining nutrients."
-70,35,40,6.8,45,27,NPK 10-10-10,"Nutrients are relatively balanced; use moderate balanced fertilizer."
-80,40,50,6.5,45,28,NPK 20-20-20,"Higher nutrient availability supports a balanced NPK recommendation."
-90,50,60,7.0,55,26,Potassium Sulphate,"Potassium is high; avoid unnecessary potassium application and monitor soil."
-25,30,35,6.4,38,25,DAP,"Nitrogen is low relative to phosphorus; DAP may improve nitrogen availability."
-35,40,45,6.6,42,26,DAP,"Phosphorus is comparatively high; use fertilizer according to crop requirement."
-55,20,50,6.8,40,29,Urea,"Nitrogen is the main limiting nutrient in this sample."
-45,15,55,6.3,35,27,Urea,"Nitrogen is comparatively low; nitrogen supplementation is suggested."
+nitrogen	phosphorus	potassium	moisture	temperature	recommended_fertilizer	advice
+20	10	15	20	38	Urea	Nitrogen is low; nitrogen fertilizer is recommended.
+30	15	20	25	35	Urea	Nitrogen is relatively low; apply a suitable nitrogen fertilizer.
+40	20	25	30	32	DAP	Nitrogen and phosphorus are moderate; DAP can support nutrient balance.
+50	25	30	35	30	NPK 10-26-26	"Balanced NPK supplementation is recommended, especially for phosphorus."
+60	30	35	40	28	NPK 10-10-10	A balanced NPK fertilizer is suitable for maintaining nutrients.
+70	35	40	45	27	NPK 10-10-10	Nutrients are relatively balanced; use moderate balanced fertilizer.
+80	40	50	45	28	NPK 20-20-20	Higher nutrient availability supports a balanced NPK recommendation.
+90	50	60	55	26	Potassium Sulphate	Potassium is high; avoid unnecessary potassium application and monitor soil.
+25	30	35	38	25	DAP	Nitrogen is low relative to phosphorus; DAP may improve nitrogen availability.
+35	40	45	42	26	DAP	Phosphorus is comparatively high; use fertilizer according to crop requirement.
+55	20	50	40	29	Urea	Nitrogen is the main limiting nutrient in this sample.
+45	15	55	35	27	Urea	Nitrogen is comparatively low; nitrogen supplementation is suggested.

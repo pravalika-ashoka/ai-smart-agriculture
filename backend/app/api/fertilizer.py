@@ -53,8 +53,6 @@ def fertilizer_recommendation(
 
             float(data.potassium),
 
-            float(data.ph),
-
             float(data.moisture),
 
             float(data.temperature)
@@ -101,7 +99,6 @@ def fertilizer_recommendation(
                 "nitrogen": features[0],
                 "phosphorus": features[1],
                 "potassium": features[2],
-                "ph": features[3],
                 "moisture": features[4],
                 "temperature": features[5],
                 "crop_type": crop_type

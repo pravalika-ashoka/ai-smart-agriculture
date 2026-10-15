@@ -21,7 +21,6 @@ FEATURE_COLUMNS = [
     "potassium",
     "temperature",
     "humidity",
-    "ph",
     "rainfall",
 ]
 
@@ -448,8 +447,7 @@ def predict_crop(features):
     3. potassium
     4. temperature
     5. humidity
-    6. ph
-    7. rainfall
+    6. rainfall
     """
 
     # =====================================================

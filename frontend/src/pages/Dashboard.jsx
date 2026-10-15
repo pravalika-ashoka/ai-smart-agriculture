@@ -957,28 +957,6 @@ function Dashboard() {
 
                             </div>
 
-
-                            <div className="sensor-card">
-
-                                <span className="sensor-icon">
-                                    🧪
-                                </span>
-
-                                <span className="sensor-label">
-
-                                    {isKannada
-                                        ? "ಮಣ್ಣಿನ pH"
-                                        : "Soil pH"}
-
-                                </span>
-
-                                <strong>
-                                    {sensorData.ph ?? "--"}
-                                </strong>
-
-                            </div>
-
-
                             <div className="sensor-card">
 
                                 <span className="sensor-icon">
@@ -1179,7 +1157,6 @@ function Dashboard() {
                                         <th>N</th>
                                         <th>P</th>
                                         <th>K</th>
-                                        <th>pH</th>
                                         <th>Recorded At</th>
                                     </tr>
                                 </thead>
@@ -1218,10 +1195,6 @@ function Dashboard() {
 
                                             <td>
                                                 {reading.potassium ?? "--"}
-                                            </td>
-
-                                            <td>
-                                                {reading.ph ?? "--"}
                                             </td>
 
                                             <td>

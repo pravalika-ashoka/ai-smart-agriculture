@@ -42,14 +42,12 @@ const translations = {
         nitrogen: "Nitrogen",
         phosphorus: "Phosphorus",
         potassium: "Potassium",
-        soilPh: "Soil pH",
         soilMoisture: "Soil Moisture",
         temperature: "Temperature",
         humidity: "Humidity",
         rainfall: "Rainfall",
 
         mgkg: "mg/kg",
-        phLevel: "pH level",
         percent: "%",
         celsius: "°C",
         mm: "mm",
@@ -145,9 +143,6 @@ const translations = {
         potassium:
             "ಪೊಟ್ಯಾಸಿಯಂ",
 
-        soilPh:
-            "ಮಣ್ಣಿನ pH",
-
         soilMoisture:
             "ಮಣ್ಣಿನ ತೇವಾಂಶ",
 
@@ -162,9 +157,6 @@ const translations = {
 
         mgkg:
             "mg/kg",
-
-        phLevel:
-            "pH ಮಟ್ಟ",
 
         percent:
             "%",
@@ -274,11 +266,7 @@ function SensorCard({
         value !== "" &&
         Number.isFinite(Number(value));
 
-    const decimals =
-        label === "Soil pH" ||
-        label === "ಮಣ್ಣಿನ pH"
-            ? 2
-            : 1;
+    const decimals = 1;
 
     return (
         <div
@@ -417,13 +405,6 @@ function normalizeSensorData(response) {
         );
 
 
-    const ph =
-        getNumber(
-            source?.ph,
-            source?.pH,
-            source?.PH
-        );
-
 
     const moisture =
         getNumber(
@@ -464,8 +445,6 @@ function normalizeSensorData(response) {
         phosphorus,
 
         potassium,
-
-        ph,
 
         soil_moisture:
             moisture,
@@ -696,9 +675,6 @@ function Soil() {
                     potassium:
                         normalized.potassium,
 
-                    ph:
-                        normalized.ph,
-
                     moisture:
                         normalized.moisture,
 
@@ -870,11 +846,6 @@ function Soil() {
                 potassium:
                     Number(
                         sensorData.potassium
-                    ),
-
-                ph:
-                    Number(
-                        sensorData.ph
                     ),
 
                 moisture:
@@ -1230,16 +1201,6 @@ function Soil() {
                                 unit={t.mgkg}
                                 icon="K"
                                 accent="soil-accent-k"
-                            />
-
-                            <SensorCard
-                                label={t.soilPh}
-                                value={
-                                    sensorData.ph
-                                }
-                                unit={t.phLevel}
-                                icon="pH"
-                                accent="soil-accent-ph"
                             />
 
                             <SensorCard

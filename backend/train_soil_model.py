@@ -24,7 +24,6 @@ X = data[
         "nitrogen",
         "phosphorus",
         "potassium",
-        "ph",
         "moisture",
         "temperature"
     ]

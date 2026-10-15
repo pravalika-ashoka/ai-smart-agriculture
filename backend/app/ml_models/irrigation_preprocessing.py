@@ -181,9 +181,6 @@ def preprocess_irrigation(data):
         "potassium":
             float(data.potassium),
 
-        "ph":
-            float(data.ph),
-
         "crop_water_factor":
             float(crop_water_factor),
     }

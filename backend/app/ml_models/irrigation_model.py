@@ -307,9 +307,6 @@ def preprocess_irrigation(data):
         "potassium":
             float(data.potassium),
 
-        "ph":
-            float(data.ph),
-
         "crop_water_factor":
             float(crop_water_factor)
     }
@@ -742,7 +739,6 @@ def predict_irrigation(features):
             "nitrogen",
             "phosphorus",
             "potassium",
-            "ph",
             "crop_water_factor"
 
         ]

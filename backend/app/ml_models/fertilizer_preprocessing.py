@@ -5,7 +5,6 @@ FEATURE_NAMES = [
     "nitrogen",
     "phosphorus",
     "potassium",
-    "ph",
     "moisture",
     "temperature"
 ]
@@ -18,7 +17,6 @@ def preprocess_fertilizer(data):
             data.nitrogen,
             data.phosphorus,
             data.potassium,
-            data.ph,
             data.moisture,
             data.temperature
         ],

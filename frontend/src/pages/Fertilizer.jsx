@@ -217,10 +217,6 @@ function Fertilizer() {
                 potassium:
                     data?.potassium,
 
-                ph:
-                    data?.ph ??
-                    data?.pH,
-
                 soil_moisture:
                     data?.soil_moisture ??
                     data?.moisture,
@@ -468,13 +464,6 @@ function Fertilizer() {
                     sensorData.potassium
                 );
 
-
-            const ph =
-                Number(
-                    sensorData.ph
-                );
-
-
             const moisture =
                 Number(
                     sensorData.soil_moisture
@@ -498,8 +487,6 @@ function Fertilizer() {
                 phosphorus,
 
                 potassium,
-
-                ph,
 
                 moisture,
 
@@ -571,9 +558,6 @@ function Fertilizer() {
 
                 potassium:
                     potassium,
-
-                ph:
-                    ph,
 
                 moisture:
                     moisture,
@@ -1402,48 +1386,6 @@ function Fertilizer() {
 
                                 </div>
 
-
-                                {/* SOIL PH */}
-
-                                <div className="fertilizer-sensor-card">
-
-                                    <div className="sensor-icon sensor-ph">
-                                        pH
-                                    </div>
-
-
-                                    <div className="sensor-info">
-
-                                        <span>
-
-                                            {isKannada
-                                                ? "ಮಣ್ಣಿನ pH"
-                                                : "Soil pH"}
-
-                                        </span>
-
-
-                                        <strong>
-
-                                            {sensorData.ph ??
-                                                "N/A"}
-
-                                        </strong>
-
-
-                                        <small>
-
-                                            {isKannada
-                                                ? "ಆಮ್ಲೀಯತೆಯ ಮಟ್ಟ"
-                                                : "Acidity level"}
-
-                                        </small>
-
-                                    </div>
-
-                                </div>
-
-
                                 {/* RAINFALL */}
 
                                 <div className="fertilizer-sensor-card">
@@ -2092,31 +2034,6 @@ function Fertilizer() {
                                     </small>
 
                                 </div>
-
-
-                                {/* PH */}
-
-                                <div>
-
-                                    <span>
-                                        pH
-                                    </span>
-
-
-                                    <strong>
-
-                                        {sensorData?.ph ??
-                                            "--"}
-
-                                    </strong>
-
-
-                                    <small>
-                                        pH
-                                    </small>
-
-                                </div>
-
 
                                 {/* MOISTURE */}
 

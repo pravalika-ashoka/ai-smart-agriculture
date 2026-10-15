@@ -34,7 +34,6 @@ def export_iot_data(db: Session = Depends(get_db)):
         "nitrogen",
         "phosphorus",
         "potassium",
-        "ph",
         "recorded_at"
     ])
 
@@ -48,7 +47,6 @@ def export_iot_data(db: Session = Depends(get_db)):
             row.nitrogen,
             row.phosphorus,
             row.potassium,
-            row.ph,
             row.recorded_at
         ])
 

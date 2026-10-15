@@ -7,7 +7,6 @@ class CropRequest(BaseModel):
     potassium: float
     temperature: float
     humidity: float
-    ph: float
     rainfall: float
 
 

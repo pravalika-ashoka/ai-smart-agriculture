@@ -9,7 +9,6 @@ FEATURE_NAMES = [
     "Nitrogen",
     "Phosphorus",
     "Potassium",
-    "pH",
     "Moisture",
     "Temperature"
 ]
@@ -29,9 +28,6 @@ FEATURE_DESCRIPTIONS = {
 
     "Potassium":
         "Potassium level in the soil.",
-
-    "pH":
-        "Soil acidity or alkalinity.",
 
     "Moisture":
         "Amount of water present in the soil.",

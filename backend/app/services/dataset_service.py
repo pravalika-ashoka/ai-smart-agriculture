@@ -85,7 +85,6 @@ def load_crop_data():
         "potassium",
         "temperature",
         "humidity",
-        "ph",
         "rainfall",
         "crop"
     ]
@@ -112,7 +111,6 @@ def load_crop_data():
         "potassium",
         "temperature",
         "humidity",
-        "ph",
         "rainfall"
     ]
 
@@ -176,7 +174,6 @@ def load_soil_data():
         "nitrogen",
         "phosphorus",
         "potassium",
-        "ph",
         "moisture",
         "temperature",
         "soil_health"
@@ -202,7 +199,6 @@ def load_soil_data():
         "nitrogen",
         "phosphorus",
         "potassium",
-        "ph",
         "moisture",
         "temperature"
     ]

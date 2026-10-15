@@ -162,11 +162,6 @@ def generate_dataset(
             80
         )
 
-        ph = random.uniform(
-            5.0,
-            8.0
-        )
-
         # -------------------------------------------------
         # Crop
         # -------------------------------------------------
@@ -255,11 +250,6 @@ def generate_dataset(
                     2
                 ),
 
-            "ph":
-                round(
-                    ph,
-                    2
-                ),
 
             "crop_type":
                 crop_type,

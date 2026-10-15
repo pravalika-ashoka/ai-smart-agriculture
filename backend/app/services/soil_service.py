@@ -11,8 +11,6 @@ def predict_soil_service(data):
 
         data.potassium,
 
-        data.ph,
-
         data.moisture,
 
         data.temperature

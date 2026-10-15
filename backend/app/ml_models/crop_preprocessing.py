@@ -11,7 +11,6 @@ FEATURE_COLUMNS = [
     "potassium",
     "temperature",
     "humidity",
-    "ph",
     "rainfall"
 ]
 
@@ -28,8 +27,7 @@ def preprocess_crop(data):
         2 - potassium
         3 - temperature
         4 - humidity
-        5 - ph
-        6 - rainfall
+        5 - rainfall
     """
 
     features = np.array(
@@ -39,7 +37,6 @@ def preprocess_crop(data):
             data.potassium,
             data.temperature,
             data.humidity,
-            data.ph,
             data.rainfall
         ],
         dtype=float

@@ -36,7 +36,6 @@ const translations = {
         nitrogen: "Nitrogen",
         phosphorus: "Phosphorus",
         potassium: "Potassium",
-        ph: "pH",
 
         location: "Farm Location",
         detecting: "Detecting location...",
@@ -136,8 +135,6 @@ const translations = {
         nitrogen: "ಸಾರಜನಕ",
         phosphorus: "ರಂಜಕ",
         potassium: "ಪೊಟ್ಯಾಸಿಯಮ್",
-        ph: "pH",
-
         location: "ಕೃಷಿ ಸ್ಥಳ",
         detecting: "ಸ್ಥಳ ಪತ್ತೆ ಮಾಡಲಾಗುತ್ತಿದೆ...",
         locationDetected: "ಸ್ಥಳ ಪತ್ತೆಯಾಗಿದೆ",
@@ -877,14 +874,7 @@ export default function Irrigation() {
             potassium:
                 numberValue(
                     data.potassium
-                ),
-
-            ph:
-                numberValue(
-                    data.ph ??
-                    data.pH
-                ),
-
+                )
         };
 
     }, [sensorData]);
@@ -1027,11 +1017,7 @@ export default function Irrigation() {
                     values.phosphorus,
 
                 potassium:
-                    values.potassium,
-
-                ph:
-                    values.ph,
-
+                    values.potassium
             };
 
 
@@ -1488,22 +1474,6 @@ export default function Irrigation() {
                             }
                             unit="K"
                         />
-
-
-                        <SensorCard
-                            icon="⚗️"
-                            label={t.ph}
-                            value={
-                                sensorData
-                                    ? formatNumber(
-                                        values.ph,
-                                        2
-                                    )
-                                    : "--"
-                            }
-                            unit="pH"
-                        />
-
                     </div>
 
 

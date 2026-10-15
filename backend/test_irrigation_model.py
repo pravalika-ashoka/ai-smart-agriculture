@@ -23,7 +23,6 @@ tests = [
         "nitrogen": 50,
         "phosphorus": 30,
         "potassium": 40,
-        "ph": 6.5,
         "crop_water_factor": 1.0
     },
 
@@ -39,7 +38,6 @@ tests = [
         "nitrogen": 60,
         "phosphorus": 35,
         "potassium": 45,
-        "ph": 6.5,
         "crop_water_factor": 1.0
     },
 
@@ -55,7 +53,6 @@ tests = [
         "nitrogen": 70,
         "phosphorus": 40,
         "potassium": 50,
-        "ph": 6.5,
         "crop_water_factor": 1.0
     },
 
@@ -71,7 +68,6 @@ tests = [
         "nitrogen": 80,
         "phosphorus": 45,
         "potassium": 60,
-        "ph": 6.5,
         "crop_water_factor": 1.0
     },
 

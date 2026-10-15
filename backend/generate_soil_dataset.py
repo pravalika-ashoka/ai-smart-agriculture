@@ -64,7 +64,6 @@ FEATURES = [
     "nitrogen",
     "phosphorus",
     "potassium",
-    "ph",
     "moisture",
     "temperature"
 ]
@@ -188,14 +187,6 @@ for class_name, proportion in (
         )
     )
 
-    generated["ph"] += (
-        rng.normal(
-            0,
-            0.08,
-            class_count
-        )
-    )
-
     generated["moisture"] += (
         rng.normal(
             0,
@@ -230,11 +221,6 @@ for class_name, proportion in (
     generated["potassium"] = (
         generated["potassium"]
         .clip(5, 150)
-    )
-
-    generated["ph"] = (
-        generated["ph"]
-        .clip(4.5, 8.5)
     )
 
     generated["moisture"] = (
@@ -341,10 +327,6 @@ final_df["phosphorus"] = (
 
 final_df["potassium"] = (
     final_df["potassium"].round(2)
-)
-
-final_df["ph"] = (
-    final_df["ph"].round(2)
 )
 
 final_df["moisture"] = (

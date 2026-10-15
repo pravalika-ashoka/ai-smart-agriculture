@@ -18,12 +18,6 @@ class SoilInput(BaseModel):
         ge=0
     )
 
-    ph: float = Field(
-        ...,
-        ge=0,
-        le=14
-    )
-
     moisture: float = Field(
         ...,
         ge=0,
