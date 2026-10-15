@@ -39,10 +39,11 @@ from app.models.prediction import Prediction
 from app.models.notification import Notification
 from app.models.sms_relay_device import SmsRelayDevice
 from app.models.sms_message import SmsMessage
+from app.models.iot_reading import IoTReading
 
 # Password reset model
 from app.models.password_reset import PasswordReset
-
+from app.models.auth_otp import AuthOTP
 
 # =========================================================
 # API ROUTERS
@@ -65,7 +66,7 @@ from app.api.yield_prediction import router as yield_router
 from app.api.market import router as market_router
 from app.api.disease import router as disease_router
 from app.api.sms_relay import router as sms_relay_router
-
+from app.api import iot_export
 
 # =========================================================
 # CREATE DATABASE TABLES
@@ -136,7 +137,7 @@ app.include_router(yield_router)
 app.include_router(market_router)
 app.include_router(disease_router)
 app.include_router(sms_relay_router)
-
+app.include_router(iot_export.router)
 # =========================================================
 # ROOT
 # =========================================================
