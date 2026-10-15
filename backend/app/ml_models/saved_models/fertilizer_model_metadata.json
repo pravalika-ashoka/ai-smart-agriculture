@@ -1,6 +1,7 @@
 {
-    "accuracy": 0.9188,
-    "dataset_records": 50000,
+    "model": "RandomForestClassifier",
+    "dataset": "fertilizer_data.csv",
+    "records": 50000,
     "features": [
         "nitrogen",
         "phosphorus",
@@ -8,12 +9,8 @@
         "moisture",
         "temperature"
     ],
-    "classes": [
-        "DAP",
-        "NPK 10-10-10",
-        "NPK 10-26-26",
-        "NPK 20-20-20",
-        "Potassium Sulphate",
-        "Urea"
-    ]
+    "target": "recommended_fertilizer",
+    "accuracy": 90.78,
+    "n_estimators": 200,
+    "random_state": 42
 }

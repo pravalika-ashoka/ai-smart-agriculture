@@ -1016,6 +1016,6 @@ def predict_irrigation(features):
             "Random Forest + Irrigation Dataset + Weather + Soil Moisture",
 
         "features_used":
-            12
+            11
 
     }
