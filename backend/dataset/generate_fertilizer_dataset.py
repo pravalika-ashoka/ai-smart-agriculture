@@ -40,8 +40,6 @@ PROFILES = {
 
         "k_range": (10, 50),
 
-        "ph_range": (5.0, 7.2),
-
         "moisture_range": (15, 55),
 
         "temp_range": (20, 40),
@@ -63,8 +61,6 @@ PROFILES = {
         "p_range": (25, 65),
 
         "k_range": (15, 55),
-
-        "ph_range": (5.5, 7.2),
 
         "moisture_range": (20, 60),
 
@@ -88,8 +84,6 @@ PROFILES = {
 
         "k_range": (35, 65),
 
-        "ph_range": (5.8, 7.2),
-
         "moisture_range": (30, 65),
 
         "temp_range": (18, 35),
@@ -111,8 +105,6 @@ PROFILES = {
         "p_range": (50, 85),
 
         "k_range": (50, 85),
-
-        "ph_range": (5.5, 7.2),
 
         "moisture_range": (25, 65),
 
@@ -136,8 +128,6 @@ PROFILES = {
 
         "k_range": (55, 90),
 
-        "ph_range": (5.8, 7.5),
-
         "moisture_range": (30, 70),
 
         "temp_range": (18, 35),
@@ -159,8 +149,6 @@ PROFILES = {
         "p_range": (20, 65),
 
         "k_range": (70, 100),
-
-        "ph_range": (5.5, 7.5),
 
         "moisture_range": (25, 70),
 
@@ -188,8 +176,6 @@ COLUMNS = [
     "phosphorus",
 
     "potassium",
-
-    "ph",
 
     "moisture",
 
@@ -266,12 +252,6 @@ def generate_row(
             sample_int(
                 rng,
                 *profile["k_range"]
-            ),
-
-        "ph":
-            sample_float(
-                rng,
-                *profile["ph_range"]
             ),
 
         "moisture":
@@ -578,7 +558,6 @@ def main():
                 "nitrogen",
                 "phosphorus",
                 "potassium",
-                "ph",
                 "moisture",
                 "temperature"
             ]

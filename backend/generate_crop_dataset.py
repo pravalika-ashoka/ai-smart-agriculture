@@ -25,7 +25,6 @@ COLUMNS = [
     "K",
     "temperature",
     "humidity",
-    "ph",
     "rainfall",
     "label",
 ]
@@ -45,7 +44,6 @@ CROP_PROFILES = {
         "K": (35, 50),
         "temperature": (20, 30),
         "humidity": (75, 95),
-        "ph": (5.0, 7.5),
         "rainfall": (150, 300),
     },
 
@@ -55,7 +53,6 @@ CROP_PROFILES = {
         "K": (15, 45),
         "temperature": (18, 30),
         "humidity": (55, 85),
-        "ph": (5.5, 7.5),
         "rainfall": (50, 150),
     },
 
@@ -65,7 +62,6 @@ CROP_PROFILES = {
         "K": (20, 45),
         "temperature": (18, 30),
         "humidity": (50, 75),
-        "ph": (6.0, 8.5),
         "rainfall": (40, 100),
     },
 
@@ -75,7 +71,6 @@ CROP_PROFILES = {
         "K": (15, 35),
         "temperature": (15, 30),
         "humidity": (55, 75),
-        "ph": (5.5, 7.5),
         "rainfall": (50, 150),
     },
 
@@ -85,7 +80,6 @@ CROP_PROFILES = {
         "K": (15, 40),
         "temperature": (18, 35),
         "humidity": (45, 75),
-        "ph": (5.5, 7.5),
         "rainfall": (50, 150),
     },
 
@@ -95,7 +89,6 @@ CROP_PROFILES = {
         "K": (15, 35),
         "temperature": (24, 38),
         "humidity": (40, 70),
-        "ph": (6.0, 8.5),
         "rainfall": (20, 80),
     },
 
@@ -105,7 +98,6 @@ CROP_PROFILES = {
         "K": (15, 35),
         "temperature": (22, 35),
         "humidity": (55, 85),
-        "ph": (6.0, 7.5),
         "rainfall": (40, 120),
     },
 
@@ -115,7 +107,6 @@ CROP_PROFILES = {
         "K": (15, 35),
         "temperature": (22, 35),
         "humidity": (55, 85),
-        "ph": (6.0, 7.5),
         "rainfall": (50, 150),
     },
 
@@ -125,7 +116,6 @@ CROP_PROFILES = {
         "K": (15, 40),
         "temperature": (18, 30),
         "humidity": (50, 75),
-        "ph": (6.0, 8.0),
         "rainfall": (30, 100),
     },
 
@@ -135,7 +125,6 @@ CROP_PROFILES = {
         "K": (10, 40),
         "temperature": (18, 35),
         "humidity": (40, 70),
-        "ph": (5.5, 7.5),
         "rainfall": (30, 100),
     },
 
@@ -145,7 +134,6 @@ CROP_PROFILES = {
         "K": (40, 60),
         "temperature": (24, 35),
         "humidity": (70, 95),
-        "ph": (5.5, 7.5),
         "rainfall": (100, 300),
     },
 
@@ -155,7 +143,6 @@ CROP_PROFILES = {
         "K": (10, 40),
         "temperature": (24, 35),
         "humidity": (45, 75),
-        "ph": (5.5, 7.5),
         "rainfall": (40, 150),
     },
 
@@ -165,7 +152,6 @@ CROP_PROFILES = {
         "K": (10, 40),
         "temperature": (18, 35),
         "humidity": (50, 80),
-        "ph": (5.5, 7.5),
         "rainfall": (40, 120),
     },
 
@@ -175,7 +161,6 @@ CROP_PROFILES = {
         "K": (10, 40),
         "temperature": (24, 35),
         "humidity": (60, 90),
-        "ph": (5.5, 7.5),
         "rainfall": (40, 100),
     },
 
@@ -185,7 +170,6 @@ CROP_PROFILES = {
         "K": (10, 40),
         "temperature": (24, 35),
         "humidity": (55, 85),
-        "ph": (6.0, 7.5),
         "rainfall": (20, 80),
     },
 
@@ -195,7 +179,6 @@ CROP_PROFILES = {
         "K": (10, 40),
         "temperature": (8, 25),
         "humidity": (50, 80),
-        "ph": (5.5, 7.5),
         "rainfall": (80, 200),
     },
 
@@ -205,7 +188,6 @@ CROP_PROFILES = {
         "K": (10, 40),
         "temperature": (18, 32),
         "humidity": (50, 80),
-        "ph": (5.5, 7.5),
         "rainfall": (60, 180),
     },
 
@@ -215,7 +197,6 @@ CROP_PROFILES = {
         "K": (30, 60),
         "temperature": (22, 35),
         "humidity": (65, 90),
-        "ph": (5.5, 7.5),
         "rainfall": (80, 200),
     },
 
@@ -225,7 +206,6 @@ CROP_PROFILES = {
         "K": (10, 40),
         "temperature": (24, 35),
         "humidity": (70, 95),
-        "ph": (5.5, 7.5),
         "rainfall": (100, 300),
     },
 
@@ -235,7 +215,6 @@ CROP_PROFILES = {
         "K": (30, 60),
         "temperature": (21, 35),
         "humidity": (50, 80),
-        "ph": (5.5, 8.0),
         "rainfall": (50, 150),
     },
 
@@ -245,7 +224,6 @@ CROP_PROFILES = {
         "K": (30, 60),
         "temperature": (24, 35),
         "humidity": (70, 95),
-        "ph": (5.5, 7.5),
         "rainfall": (150, 300),
     },
 
@@ -255,7 +233,6 @@ CROP_PROFILES = {
         "K": (20, 60),
         "temperature": (18, 30),
         "humidity": (65, 95),
-        "ph": (5.0, 7.0),
         "rainfall": (100, 300),
     },
 }
@@ -350,7 +327,6 @@ numeric_columns = [
     "K",
     "temperature",
     "humidity",
-    "ph",
     "rainfall",
 ]
 
@@ -486,11 +462,6 @@ final_df["temperature"] = (
 
 final_df["humidity"] = (
     final_df["humidity"]
-    .round(6)
-)
-
-final_df["ph"] = (
-    final_df["ph"]
     .round(6)
 )
 

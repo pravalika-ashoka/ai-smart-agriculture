@@ -227,11 +227,6 @@ function Crop() {
                         sensorData.humidity
                     ),
 
-                ph:
-                    Number(
-                        sensorData.ph
-                    ),
-
                 rainfall:
                     Number(
                         sensorData.rainfall
@@ -280,27 +275,6 @@ function Crop() {
                 return;
 
             }
-
-
-            // =================================================
-            // VALIDATE pH
-            // =================================================
-
-            if (
-                inputData.ph < 0 ||
-                inputData.ph > 14
-            ) {
-
-                setError(
-                    isKannada
-                        ? "pH ಮೌಲ್ಯವು 0 ಮತ್ತು 14ರ ನಡುವೆ ಇರಬೇಕು."
-                        : "pH value must be between 0 and 14."
-                );
-
-                return;
-
-            }
-
 
             // =================================================
             // VALIDATE HUMIDITY
@@ -851,38 +825,6 @@ function Crop() {
                                     </div>
 
                                 </div>
-
-
-                                {/* PH */}
-
-                                <div className="sensor-item">
-
-                                    <div className="sensor-icon">
-                                        pH
-                                    </div>
-
-                                    <div>
-
-                                        <span>
-                                            {isKannada
-                                                ? "ಮಣ್ಣಿನ pH"
-                                                : "Soil pH"}
-                                        </span>
-
-                                        <strong>
-                                            {sensorData.ph ?? "N/A"}
-                                        </strong>
-
-                                        <small>
-                                            {isKannada
-                                                ? "ಆಮ್ಲೀಯತೆಯ ಮಟ್ಟ"
-                                                : "Acidity level"}
-                                        </small>
-
-                                    </div>
-
-                                </div>
-
 
                                 {/* RAINFALL */}
 
