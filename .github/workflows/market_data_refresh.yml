@@ -2,14 +2,20 @@ name: Refresh Karnataka Market Data
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "0 21 * * *"
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: market-data-refresh
+  cancel-in-progress: false
 
 jobs:
-  test-market-api:
+  refresh-market-data:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 60
 
     steps:
       - name: Check out repository
@@ -20,78 +26,226 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Test Data.gov.in API
+      - name: Fetch official Data.gov.in market data
         env:
           DATA_GOV_API_KEY: ${{ secrets.DATA_GOV_API_KEY }}
         run: |
           python - <<'PY'
           import json
           import os
-          import socket
+          import random
+          import time
+          from datetime import datetime, timezone
+          from pathlib import Path
+          from urllib.error import HTTPError, URLError
           from urllib.parse import urlencode
           from urllib.request import Request, urlopen
 
-          resource_id = "9ef84268-d588-465a-a308-a864a43d0070"
-          host = "api.data.gov.in"
-          port = 443
-
-          print("Step 1: Checking DNS...")
-          try:
-              print(socket.getaddrinfo(host, port)[0][4][0])
-          except Exception as exc:
-              raise SystemExit(f"DNS lookup failed: {exc}")
-
-          print("Step 2: Checking HTTPS connectivity...")
-          try:
-              with socket.create_connection((host, port), timeout=10):
-                  print("TCP connection successful.")
-          except Exception as exc:
-              raise SystemExit(
-                  f"Cannot connect to {host}:{port}: {exc}"
-              )
+          RESOURCE_ID = "9ef84268-d588-465a-a308-a864a43d0070"
+          API_URL = f"https://api.data.gov.in/resource/{RESOURCE_ID}"
+          STATE = "Karnataka"
+          PAGE_SIZE = 100
+          MAX_RECORDS = 100000
+          MAX_RETRIES = 5
+          TIMEOUT = 120
 
           api_key = os.environ.get("DATA_GOV_API_KEY", "").strip()
+
           if not api_key:
-              raise SystemExit(
-                  "DATA_GOV_API_KEY is missing or empty in GitHub Secrets."
+              raise RuntimeError(
+                  "DATA_GOV_API_KEY is missing from GitHub Secrets."
               )
 
-          print("Step 3: Sending a small authenticated API request...")
-          params = {
-              "api-key": api_key,
-              "format": "json",
-              "limit": 1,
-              "offset": 0,
-          }
+          def fetch_page(offset):
+              params = {
+                  "api-key": api_key,
+                  "format": "json",
+                  "limit": PAGE_SIZE,
+                  "offset": offset,
+              }
+              url = API_URL + "?" + urlencode(params)
 
-          url = (
-              f"https://{host}/resource/{resource_id}?"
-              + urlencode(params)
-          )
-
-          request = Request(
-              url,
-              headers={"User-Agent": "AI-Smart-Agriculture/1.0"},
-          )
-
-          try:
-              with urlopen(request, timeout=30) as response:
-                  status = response.status
-                  payload = json.loads(
-                      response.read().decode("utf-8")
+              for attempt in range(MAX_RETRIES):
+                  request = Request(
+                      url,
+                      headers={
+                          "User-Agent": "AI-Smart-Agriculture/1.0",
+                          "Accept": "application/json",
+                      },
                   )
 
-              print(f"HTTP status: {status}")
+                  try:
+                      with urlopen(request, timeout=TIMEOUT) as response:
+                          payload = json.loads(
+                              response.read().decode("utf-8")
+                          )
 
-              if not isinstance(payload, dict):
-                  raise SystemExit("Unexpected API response format.")
+                      if not isinstance(payload, dict):
+                          raise RuntimeError(
+                              "Unexpected Data.gov.in response format."
+                          )
 
-              records = payload.get("records", [])
-              print(f"Records returned: {len(records)}")
-              print("API connectivity test completed.")
+                      records = payload.get("records")
 
-          except Exception as exc:
-              raise SystemExit(
-                  f"Authenticated API request failed: {exc}"
+                      if not isinstance(records, list):
+                          raise RuntimeError(
+                              "API response does not contain a records list."
+                          )
+
+                      return records
+
+                  except HTTPError as exc:
+                      # Retry temporary server and rate-limit errors.
+                      if exc.code not in (408, 425, 429, 500, 502, 503, 504):
+                          raise RuntimeError(
+                              f"Data.gov.in returned HTTP {exc.code}."
+                          ) from None
+
+                      if attempt == MAX_RETRIES - 1:
+                          raise RuntimeError(
+                              f"HTTP {exc.code} after {MAX_RETRIES} attempts."
+                          ) from None
+
+                      delay = min(60, 5 * (2 ** attempt)) + random.random()
+                      print(
+                          f"HTTP {exc.code}; retrying in "
+                          f"{delay:.1f} seconds."
+                      )
+                      time.sleep(delay)
+
+                  except (URLError, TimeoutError, ConnectionError, OSError) as exc:
+                      if attempt == MAX_RETRIES - 1:
+                          raise RuntimeError(
+                              f"Connection failed at offset {offset} "
+                              f"after {MAX_RETRIES} attempts: "
+                              f"{type(exc).__name__}"
+                          ) from None
+
+                      delay = min(60, 5 * (2 ** attempt)) + random.random()
+                      print(
+                          f"Network error at offset {offset}; "
+                          f"retrying in {delay:.1f} seconds."
+                      )
+                      time.sleep(delay)
+
+              raise RuntimeError("Request retries exhausted.")
+
+          all_records = []
+          offset = 0
+
+          while offset < MAX_RECORDS:
+              remaining = MAX_RECORDS - offset
+              requested = min(PAGE_SIZE, remaining)
+
+              print(
+                  f"Fetching offset={offset}, limit={requested}"
               )
+
+              page = fetch_page(offset)
+
+              print(f"Records received: {len(page)}")
+
+              if not page:
+                  print("No more records available.")
+                  break
+
+              all_records.extend(
+                  record for record in page if isinstance(record, dict)
+              )
+
+              offset += len(page)
+
+              print(f"Total records fetched: {len(all_records)}")
+
+              if len(page) < requested:
+                  print("Final page reached.")
+                  break
+
+              time.sleep(1)
+
+          if not all_records:
+              raise RuntimeError(
+                  "The API returned no records. Existing cache preserved."
+              )
+
+          print("Filtering Karnataka records...")
+
+          karnataka_records = []
+
+          for record in all_records:
+              if str(record.get("state", "")).strip().casefold() != STATE.casefold():
+                  continue
+
+              karnataka_records.append({
+                  "state": record.get("state"),
+                  "district": record.get("district"),
+                  "market": record.get("market"),
+                  "commodity": record.get("commodity"),
+                  "variety": record.get("variety"),
+                  "grade": record.get("grade"),
+                  "arrival_date": record.get("arrival_date"),
+                  "min_price": record.get("min_price"),
+                  "max_price": record.get("max_price"),
+                  "modal_price": record.get("modal_price"),
+              })
+
+          unique_records = []
+          seen = set()
+
+          for record in karnataka_records:
+              key = tuple(record.values())
+
+              if key in seen:
+                  continue
+
+              seen.add(key)
+              unique_records.append(record)
+
+          if not unique_records:
+              raise RuntimeError(
+                  "No Karnataka records found in the fetched data. "
+                  "Existing cache preserved."
+              )
+
+          cache = {
+              "success": True,
+              "updated_at": datetime.now(timezone.utc).isoformat(),
+              "source": "Data.gov.in",
+              "resource_id": RESOURCE_ID,
+              "state": STATE,
+              "total": len(unique_records),
+              "records": unique_records,
+          }
+
+          cache_path = Path("backend/data/market_cache.json")
+          cache_path.parent.mkdir(parents=True, exist_ok=True)
+
+          temporary_path = cache_path.with_suffix(".json.tmp")
+          temporary_path.write_text(
+              json.dumps(cache, indent=2, ensure_ascii=False),
+              encoding="utf-8",
+          )
+          temporary_path.replace(cache_path)
+
+          print("=" * 60)
+          print("MARKET DATA CACHE UPDATED")
+          print(f"API records fetched: {len(all_records)}")
+          print(f"Karnataka records: {len(karnataka_records)}")
+          print(f"Unique records saved: {len(unique_records)}")
+          print(f"Cache: {cache_path}")
+          print("=" * 60)
           PY
+
+      - name: Commit updated market cache
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add backend/data/market_cache.json
+
+          if git diff --cached --quiet; then
+            echo "Market cache has no changes to commit."
+          else
+            git commit -m "Update Karnataka market data"
+            git push
+          fi
