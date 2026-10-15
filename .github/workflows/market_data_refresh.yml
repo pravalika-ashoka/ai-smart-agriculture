@@ -3,7 +3,7 @@ name: Refresh Karnataka Market Data
 on:
   workflow_dispatch:
   schedule:
-    # Runs daily at 02:30 AM IST (21:00 UTC)
+    # Daily at 02:30 AM IST (21:00 UTC)
     - cron: "0 21 * * *"
 
 permissions:
@@ -34,20 +34,26 @@ jobs:
           python-version: "3.12"
 
       # --------------------------------------------------
-      # 3. Diagnose Data.gov.in connectivity
+      # 3. Diagnose network connectivity
       # --------------------------------------------------
-      - name: Diagnose Data.gov.in connectivity
+      - name: Diagnose Data.gov.in network routes
         run: |
+          echo "=========================================="
+          echo "DATA.GOV.IN CONNECTIVITY DIAGNOSTICS"
+          echo "=========================================="
+
+          echo ""
+          echo "DNS lookup:"
+          getent ahosts api.data.gov.in || true
+
+          echo ""
+          echo "Testing TCP connection to port 443:"
+
           python - <<'PY'
           import socket
-          import subprocess
 
           host = "api.data.gov.in"
           port = 443
-
-          print("=" * 60)
-          print("DATA.GOV.IN CONNECTIVITY DIAGNOSTICS")
-          print("=" * 60)
 
           try:
               addresses = sorted({
@@ -62,11 +68,13 @@ jobs:
               print(f"Resolved addresses: {addresses}")
 
           except OSError as exc:
-              print(f"DNS error: {exc!r}")
-              raise
+              print(f"DNS lookup failed: {exc!r}")
+              raise SystemExit(1)
+
+          successful_connections = 0
 
           for address in addresses:
-              print(f"\nTesting TCP connection to {address}:{port}")
+              print(f"\nTesting {address}:{port}")
 
               try:
                   with socket.create_connection(
@@ -74,47 +82,30 @@ jobs:
                       timeout=10,
                   ):
                       print("TCP connection succeeded.")
+                      successful_connections += 1
 
               except OSError as exc:
                   print(f"TCP connection failed: {exc!r}")
 
-          print("\nTesting HTTPS using curl...")
-
-          try:
-              result = subprocess.run(
-                  [
-                      "curl",
-                      "-sS",
-                      "-o",
-                      "/dev/null",
-                      "-w",
-                      "HTTP status: %{http_code}\n",
-                      "--connect-timeout",
-                      "10",
-                      "--max-time",
-                      "20",
-                      "https://api.data.gov.in/",
-                  ],
-                  capture_output=True,
-                  text=True,
-                  timeout=25,
+          if successful_connections == 0:
+              print(
+                  "\nWARNING: No TCP connection succeeded. "
+                  "The authenticated fetch step may also fail."
               )
-
-              print(result.stdout)
-
-              if result.stderr:
-                  print(
-                      "curl diagnostics: "
-                      + result.stderr.strip()
-                  )
-
-              print(f"curl exit code: {result.returncode}")
-
-          except subprocess.TimeoutExpired:
-              print("curl timed out after 25 seconds.")
-
-          print("\nConnectivity diagnostics completed.")
           PY
+
+          echo ""
+          echo "Testing HTTPS with curl:"
+
+          curl -4 -v \
+            --connect-timeout 10 \
+            --max-time 20 \
+            -o /dev/null \
+            https://api.data.gov.in/ \
+            2>&1 || true
+
+          echo ""
+          echo "Connectivity diagnostics completed."
 
       # --------------------------------------------------
       # 4. Fetch official Data.gov.in market data
@@ -135,6 +126,7 @@ jobs:
           from urllib.request import Request, urlopen
 
           RESOURCE_ID = "9ef84268-d588-465a-a308-a864a43d0070"
+
           API_URL = (
               f"https://api.data.gov.in/resource/{RESOURCE_ID}"
           )
@@ -152,7 +144,8 @@ jobs:
 
           if not api_key:
               raise RuntimeError(
-                  "DATA_GOV_API_KEY is missing from GitHub Secrets."
+                  "DATA_GOV_API_KEY is missing. "
+                  "Add it under GitHub repository Actions secrets."
               )
 
           def fetch_page(offset, requested):
@@ -185,14 +178,15 @@ jobs:
 
                       if not isinstance(payload, dict):
                           raise RuntimeError(
-                              "Unexpected Data.gov.in response format."
+                              "Unexpected API response format."
                           )
 
                       records = payload.get("records")
 
                       if not isinstance(records, list):
                           raise RuntimeError(
-                              "API response does not contain a records list."
+                              "API response does not contain "
+                              "a valid records list."
                           )
 
                       return records
@@ -209,7 +203,7 @@ jobs:
                       ):
                           raise RuntimeError(
                               f"Data.gov.in returned HTTP {exc.code}. "
-                              "Check the API response and configured secret."
+                              "Check the API response and API key."
                           ) from None
 
                       if attempt == MAX_RETRIES - 1:
@@ -224,8 +218,8 @@ jobs:
                       )
 
                       print(
-                          f"HTTP {exc.code} at offset {offset}; "
-                          f"retrying in {delay:.1f} seconds."
+                          f"HTTP {exc.code} at offset {offset}. "
+                          f"Retrying in {delay:.1f} seconds."
                       )
 
                       time.sleep(delay)
@@ -249,7 +243,7 @@ jobs:
                       if attempt == MAX_RETRIES - 1:
                           raise RuntimeError(
                               f"Connection failed at offset {offset} "
-                              f"after {MAX_RETRIES} attempts: {exc!r}"
+                              f"after {MAX_RETRIES} attempts."
                           ) from exc
 
                       delay = (
@@ -258,15 +252,15 @@ jobs:
                       )
 
                       print(
-                          f"Network error at offset {offset}; "
-                          f"retrying in {delay:.1f} seconds."
+                          f"Retrying offset {offset} "
+                          f"in {delay:.1f} seconds."
                       )
 
                       time.sleep(delay)
 
               raise RuntimeError("Request retries exhausted.")
 
-          # Fetch every page before modifying the existing cache.
+          # Fetch all pages before changing the cache.
           all_records = []
           offset = 0
 
@@ -364,12 +358,11 @@ jobs:
 
           if not unique_records:
               raise RuntimeError(
-                  "No Karnataka records found in the fetched data. "
-                  "The API may have returned records from other states. "
+                  "No Karnataka records found among the fetched records. "
                   "Existing cache preserved."
               )
 
-          # Construct cache.
+          # Build the cache.
           cache = {
               "success": True,
               "updated_at": datetime.now(
@@ -395,17 +388,25 @@ jobs:
               ".json.tmp"
           )
 
-          # Write a temporary file first.
+          # Write and validate the temporary JSON.
+          serialized_cache = json.dumps(
+              cache,
+              indent=2,
+              ensure_ascii=False,
+          )
+
           temporary_path.write_text(
-              json.dumps(
-                  cache,
-                  indent=2,
-                  ensure_ascii=False,
-              ),
+              serialized_cache,
               encoding="utf-8",
           )
 
-          # Replace the old cache only after successful validation.
+          with temporary_path.open(
+              "r",
+              encoding="utf-8",
+          ) as file:
+              json.load(file)
+
+          # Replace the cache only after successful validation.
           temporary_path.replace(cache_path)
 
           print("=" * 60)
@@ -423,7 +424,8 @@ jobs:
       - name: Commit updated market cache
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add backend/data/market_cache.json
 
