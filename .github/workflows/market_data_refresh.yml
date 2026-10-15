@@ -26,116 +26,64 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Check Data.gov.in connectivity
-        env:
-          DATA_GOV_API_KEY: ${{ secrets.DATA_GOV_API_KEY }}
+      -      - name: Diagnose Data.gov.in connectivity
         run: |
           python - <<'PY'
-          import json
-          import os
           import socket
-          from urllib.error import HTTPError, URLError
-          from urllib.parse import urlencode
-          from urllib.request import Request, urlopen
+          import subprocess
 
-          HOST = "api.data.gov.in"
-          RESOURCE_ID = "9ef84268-d588-465a-a308-a864a43d0070"
+          host = "api.data.gov.in"
+          port = 443
 
-          api_key = os.environ.get("DATA_GOV_API_KEY", "").strip()
-
-          if not api_key:
-              raise RuntimeError(
-                  "DATA_GOV_API_KEY is missing from GitHub Secrets."
-              )
-
-          print(f"Checking DNS for {HOST}...")
+          print("Checking runner information...")
+          print(f"Python socket timeout test for {host}:{port}")
 
           try:
               addresses = sorted({
                   item[4][0]
                   for item in socket.getaddrinfo(
-                      HOST, 443, type=socket.SOCK_STREAM
+                      host, port, type=socket.SOCK_STREAM
                   )
               })
-              print(f"DNS resolved successfully: {addresses}")
+              print(f"Resolved addresses: {addresses}")
           except OSError as exc:
-              print(f"DNS lookup failed: {exc!r}")
+              print(f"DNS error: {exc!r}")
               raise
 
-          params = {
-              "api-key": api_key,
-              "format": "json",
-              "limit": 1,
-              "offset": 0,
-          }
+          for address in addresses:
+              print(f"\nTesting TCP connection to {address}:{port}")
 
-          url = (
-              f"https://{HOST}/resource/{RESOURCE_ID}?"
-              + urlencode(params)
+              try:
+                  with socket.create_connection(
+                      (address, port), timeout=10
+                  ):
+                      print("TCP connection succeeded.")
+              except OSError as exc:
+                  print(f"TCP connection failed: {exc!r}")
+
+          print("\nTesting HTTPS using curl...")
+          result = subprocess.run(
+              [
+                  "curl",
+                  "-sS",
+                  "-o", "/dev/null",
+                  "-w", "HTTP status: %{http_code}\n",
+                  "--connect-timeout", "10",
+                  "--max-time", "20",
+                  "https://api.data.gov.in/",
+              ],
+              capture_output=True,
+              text=True,
+              timeout=25,
           )
 
-          request = Request(
-              url,
-              headers={
-                  "User-Agent": "AI-Smart-Agriculture/1.0",
-                  "Accept": "application/json",
-              },
-          )
+          print(result.stdout)
+          if result.stderr:
+              print(f"curl diagnostics: {result.stderr.strip()}")
 
-          print("Testing authenticated API request...")
-
-          try:
-              with urlopen(request, timeout=30) as response:
-                  payload = json.loads(
-                      response.read().decode("utf-8")
-                  )
-
-                  print(f"HTTP status: {response.status}")
-
-          except HTTPError as exc:
-              # Do not print the request URL because it contains the key.
-              print(f"API returned HTTP {exc.code}.")
-
-              if exc.code in (408, 425, 429, 500, 502, 503, 504):
-                  print(
-                      "The API returned a temporary error. "
-                      "The main fetch step will retry."
-                  )
-              else:
-                  print(
-                      "Check the API response and configured GitHub secret."
-                  )
-                  raise RuntimeError(
-                      f"Authenticated API test failed: HTTP {exc.code}"
-                  ) from None
-
-          except (URLError, TimeoutError, ConnectionError, OSError) as exc:
-              print(f"Network error type: {type(exc).__name__}")
-              print(f"Network error details: {exc!r}")
-
-              if isinstance(exc, URLError):
-                  print(f"Underlying reason: {exc.reason!r}")
-
-              raise RuntimeError(
-                  "GitHub Actions could not connect to Data.gov.in."
-              ) from exc
-
-          else:
-              if not isinstance(payload, dict):
-                  raise RuntimeError("Unexpected API response format.")
-
-              records = payload.get("records")
-
-              if not isinstance(records, list):
-                  raise RuntimeError(
-                      "API response does not contain a records list."
-                  )
-
-              print(f"API status: {payload.get('status')}")
-              print(f"Records returned: {len(records)}")
-              print("Authenticated API connectivity test succeeded.")
+          print(f"curl exit code: {result.returncode}")
+          print("\nConnectivity diagnostics completed.")
           PY
-
       - name: Fetch official Data.gov.in market data
         env:
           DATA_GOV_API_KEY: ${{ secrets.DATA_GOV_API_KEY }}
