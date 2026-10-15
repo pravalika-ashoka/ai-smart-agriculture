@@ -21,49 +21,58 @@ jobs:
     timeout-minutes: 30
 
     steps:
+      # --------------------------------------------------
+      # 1. Checkout repository
+      # --------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # --------------------------------------------------
+      # 2. Set up Python
+      # --------------------------------------------------
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       # --------------------------------------------------
-      # Diagnose connectivity before attempting data fetch
+      # 3. Diagnose connectivity
       # --------------------------------------------------
-      - name: Diagnose external API connectivity
+      - name: Diagnose Data.gov.in connectivity
         run: |
           python - <<'PY'
           import socket
           import urllib.request
           import urllib.error
 
-          hosts = {
-              "GitHub API": "https://api.github.com/",
-              "Google": "https://www.google.com/",
-              "Data.gov.in": (
+          tests = [
+              ("GitHub API", "https://api.github.com/"),
+              ("Google", "https://www.google.com/"),
+              ("Data.gov.in hostname", "https://api.data.gov.in/"),
+              (
+                  "Data.gov.in resource",
                   "https://api.data.gov.in/resource/"
-                  "9ef84268-d588-465a-a308-a864a43d0070"
+                  "9ef84268-d588-465a-a308-a864a43d0070",
               ),
-          }
+          ]
 
-          failures = []
-
-          for name, url in hosts.items():
+          for name, url in tests:
               print(f"\n--- Testing {name} ---")
+              hostname = url.split("/")[2]
 
               try:
-                  hostname = url.split("/")[2]
                   addresses = socket.getaddrinfo(
-                      hostname, 443, type=socket.SOCK_STREAM
+                      hostname,
+                      443,
+                      type=socket.SOCK_STREAM,
                   )
+                  ips = sorted({
+                      item[4][0] for item in addresses
+                  })
                   print("DNS resolution: OK")
-                  print("Resolved addresses:", len(addresses))
-
+                  print("Resolved IP addresses:", ips)
               except Exception as error:
                   print("DNS resolution failed:", repr(error))
-                  failures.append(name)
                   continue
 
               try:
@@ -76,30 +85,31 @@ jobs:
                   )
 
                   with urllib.request.urlopen(
-                      request, timeout=15
+                      request,
+                      timeout=20,
                   ) as response:
                       print("HTTPS status:", response.status)
 
               except urllib.error.HTTPError as error:
-                  # An HTTP response proves that HTTPS connectivity worked.
-                  print("HTTPS connected; HTTP status:", error.code)
-
+                  print(
+                      "HTTPS connected; HTTP status:",
+                      error.code,
+                  )
+                  print(
+                      "Response:",
+                      error.read(300).decode(
+                          "utf-8",
+                          errors="replace",
+                      ),
+                  )
               except Exception as error:
                   print("HTTPS connection failed:", repr(error))
-                  failures.append(name)
-
-          if "Data.gov.in" in failures:
-              print(
-                  "\nWARNING: Data.gov.in connectivity failed. "
-                  "The fetch step will still run to capture its "
-                  "specific error."
-              )
 
           print("\nConnectivity diagnostic completed.")
           PY
 
       # --------------------------------------------------
-      # Fetch official market data
+      # 4. Fetch and validate market data
       # --------------------------------------------------
       - name: Fetch official Data.gov.in market data
         env:
@@ -117,7 +127,10 @@ jobs:
           from urllib.request import Request, urlopen
 
           RESOURCE_ID = "9ef84268-d588-465a-a308-a864a43d0070"
-          API_URL = f"https://api.data.gov.in/resource/{RESOURCE_ID}"
+          API_URL = (
+              "https://api.data.gov.in/resource/"
+              + RESOURCE_ID
+          )
 
           STATE = "Karnataka"
           PAGE_SIZE = 1000
@@ -125,14 +138,24 @@ jobs:
           MAX_RETRIES = 5
           REQUEST_TIMEOUT = 90
 
-          api_key = os.environ.get("DATA_GOV_API_KEY", "").strip()
+          api_key = os.environ.get(
+              "DATA_GOV_API_KEY", ""
+          ).strip()
 
           if not api_key:
               raise RuntimeError(
                   "DATA_GOV_API_KEY GitHub Secret is missing or empty."
               )
 
-          def fetch_page(url):
+          def fetch_page(offset, limit):
+              params = {
+                  "api-key": api_key,
+                  "format": "json",
+                  "limit": limit,
+                  "offset": offset,
+              }
+
+              url = API_URL + "?" + urlencode(params)
               last_error = None
 
               for attempt in range(1, MAX_RETRIES + 1):
@@ -145,46 +168,55 @@ jobs:
                   )
 
                   try:
+                      print(
+                          f"Request attempt {attempt}/{MAX_RETRIES}; "
+                          f"offset={offset}; limit={limit}"
+                      )
+
                       with urlopen(
                           request,
                           timeout=REQUEST_TIMEOUT,
                       ) as response:
                           raw_data = response.read()
 
-                      data = json.loads(raw_data.decode("utf-8"))
+                      data = json.loads(
+                          raw_data.decode("utf-8")
+                      )
 
                       if not isinstance(data, dict):
                           raise RuntimeError(
-                              "Unexpected JSON response from Data.gov.in."
+                              "Unexpected API response format."
                           )
 
                       if data.get("error"):
                           raise RuntimeError(
                               "Data.gov.in API error: "
-                              + str(data["error"])[:500]
+                              + str(data["error"])[:300]
                           )
 
-                      if not isinstance(data.get("records"), list):
+                      records = data.get("records")
+
+                      if not isinstance(records, list):
                           raise RuntimeError(
-                              "API response does not contain a valid records list. "
-                              f"Response keys: {list(data.keys())}"
+                              "API response does not contain "
+                              "a valid records list."
                           )
 
                       return data
 
                   except HTTPError as error:
                       last_error = error
-
                       print(
-                          f"HTTP error on attempt {attempt}/{MAX_RETRIES}: "
-                          f"status={error.code}"
+                          f"HTTP error: {error.code}"
                       )
 
                       if error.code not in (
-                          408, 425, 429, 500, 502, 503, 504
+                          408, 425, 429,
+                          500, 502, 503, 504,
                       ):
                           raise RuntimeError(
-                              f"Non-retryable HTTP error: {error.code}"
+                              f"Non-retryable HTTP error: "
+                              f"{error.code}"
                           ) from error
 
                   except (
@@ -194,58 +226,65 @@ jobs:
                       ConnectionError,
                   ) as error:
                       last_error = error
-
                       print(
-                          f"Connection error on attempt "
-                          f"{attempt}/{MAX_RETRIES}: {error}"
+                          "Connection error:",
+                          repr(error),
                       )
 
                   if attempt < MAX_RETRIES:
-                      wait_seconds = min(5 * (2 ** (attempt - 1)), 60)
-                      print(f"Retrying in {wait_seconds} seconds...")
+                      wait_seconds = min(
+                          5 * (2 ** (attempt - 1)),
+                          60,
+                      )
+                      print(
+                          f"Retrying in {wait_seconds} seconds."
+                      )
                       time.sleep(wait_seconds)
 
               raise RuntimeError(
-                  f"Could not retrieve market data after {MAX_RETRIES} "
-                  f"attempts. Last error: {last_error}"
+                  f"Failed to retrieve offset {offset} "
+                  f"after {MAX_RETRIES} attempts: "
+                  f"{last_error}"
               ) from last_error
 
+          # Retrieve records page by page.
           all_records = []
           offset = 0
 
           while offset < MAX_RECORDS:
-              limit = min(PAGE_SIZE, MAX_RECORDS - offset)
-
-              params = {
-                  "api-key": api_key,
-                  "format": "json",
-                  "limit": limit,
-                  "offset": offset,
-              }
-
-              url = API_URL + "?" + urlencode(params)
+              limit = min(
+                  PAGE_SIZE,
+                  MAX_RECORDS - offset,
+              )
 
               print("=" * 60)
-              print(f"Fetching market data: offset={offset}, limit={limit}")
+              print(
+                  f"Fetching market data: "
+                  f"offset={offset}, limit={limit}"
+              )
               print("=" * 60)
 
-              data = fetch_page(url)
+              data = fetch_page(offset, limit)
               records = data["records"]
 
-              print(f"Records received: {len(records)}")
+              print(
+                  f"Records received: {len(records)}"
+              )
 
               if not records:
                   print("No more records available.")
                   break
 
-              valid_records = [
-                  record for record in records
+              all_records.extend(
+                  record
+                  for record in records
                   if isinstance(record, dict)
-              ]
+              )
 
-              all_records.extend(valid_records)
-
-              print(f"Total records collected: {len(all_records)}")
+              print(
+                  f"Total records collected: "
+                  f"{len(all_records)}"
+              )
 
               offset += len(records)
 
@@ -257,17 +296,21 @@ jobs:
 
           if not all_records:
               raise RuntimeError(
-                  "Data.gov.in returned zero records. "
+                  "No market records were retrieved. "
                   "The existing cache was preserved."
               )
 
-          print(f"Total API records fetched: {len(all_records)}")
+          print(
+              f"Total API records fetched: {len(all_records)}"
+          )
 
           # Filter Karnataka records locally.
           karnataka_records = []
 
           for record in all_records:
-              record_state = str(record.get("state") or "").strip()
+              record_state = str(
+                  record.get("state") or ""
+              ).strip()
 
               if record_state.casefold() != STATE.casefold():
                   continue
@@ -285,24 +328,36 @@ jobs:
                   "modal_price": record.get("modal_price"),
               })
 
-          print(f"Karnataka records found: {len(karnataka_records)}")
+          print(
+              f"Karnataka records found: "
+              f"{len(karnataka_records)}"
+          )
+
+          if not karnataka_records:
+              raise RuntimeError(
+                  "No Karnataka records were found in the "
+                  "retrieved pages. Existing cache preserved."
+              )
 
           # Remove duplicates.
           unique_records = []
           seen = set()
 
           for record in karnataka_records:
-              key = (
-                  record.get("state"),
-                  record.get("district"),
-                  record.get("market"),
-                  record.get("commodity"),
-                  record.get("variety"),
-                  record.get("grade"),
-                  record.get("arrival_date"),
-                  record.get("min_price"),
-                  record.get("max_price"),
-                  record.get("modal_price"),
+              key = tuple(
+                  record.get(field)
+                  for field in (
+                      "state",
+                      "district",
+                      "market",
+                      "commodity",
+                      "variety",
+                      "grade",
+                      "arrival_date",
+                      "min_price",
+                      "max_price",
+                      "modal_price",
+                  )
               )
 
               if key in seen:
@@ -313,42 +368,44 @@ jobs:
 
           if not unique_records:
               raise RuntimeError(
-                  "No Karnataka market records were found. "
-                  "The existing cache was preserved."
+                  "No unique Karnataka records remain. "
+                  "Existing cache preserved."
               )
 
-          districts = sorted({
+          districts = {
               str(record["district"]).strip()
               for record in unique_records
               if record.get("district")
-          })
+          }
 
-          markets = sorted({
+          markets = {
               str(record["market"]).strip()
               for record in unique_records
               if record.get("market")
-          })
+          }
 
-          commodities = sorted({
+          commodities = {
               str(record["commodity"]).strip()
               for record in unique_records
               if record.get("commodity")
-          })
+          }
 
           print("=" * 60)
           print("KARNATAKA MARKET DATA SUMMARY")
           print("=" * 60)
-          print(f"Total API records: {len(all_records)}")
+          print(f"API records fetched: {len(all_records)}")
           print(f"Karnataka records: {len(karnataka_records)}")
           print(f"Unique records: {len(unique_records)}")
           print(f"Districts: {len(districts)}")
           print(f"Markets: {len(markets)}")
           print(f"Commodities: {len(commodities)}")
 
-          # Build the cache only after successful validation.
+          # Build the new cache only after validation.
           cache = {
               "success": True,
-              "updated_at": datetime.now(timezone.utc).isoformat(),
+              "updated_at": datetime.now(
+                  timezone.utc
+              ).isoformat(),
               "source": "Data.gov.in",
               "resource_id": RESOURCE_ID,
               "state": STATE,
@@ -356,33 +413,45 @@ jobs:
               "records": unique_records,
           }
 
-          # Write atomically to avoid a partially written cache.
-          cache_path = Path("backend/data/market_cache.json")
-          cache_path.parent.mkdir(parents=True, exist_ok=True)
+          cache_path = Path(
+              "backend/data/market_cache.json"
+          )
+          cache_path.parent.mkdir(
+              parents=True,
+              exist_ok=True,
+          )
 
-          temporary_path = cache_path.with_suffix(".json.tmp")
+          temporary_path = cache_path.with_suffix(
+              ".json.tmp"
+          )
 
           temporary_path.write_text(
-              json.dumps(cache, indent=2, ensure_ascii=False),
+              json.dumps(
+                  cache,
+                  indent=2,
+                  ensure_ascii=False,
+              ),
               encoding="utf-8",
           )
 
+          # Atomic replacement prevents partial cache files.
           temporary_path.replace(cache_path)
 
           print("=" * 60)
-          print("Karnataka market cache updated successfully.")
+          print("Market cache updated successfully.")
           print(f"Records stored: {len(unique_records)}")
           print(f"Cache path: {cache_path}")
           print("=" * 60)
           PY
 
       # --------------------------------------------------
-      # Commit the updated cache
+      # 5. Commit updated cache
       # --------------------------------------------------
       - name: Commit updated market cache
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add backend/data/market_cache.json
 
