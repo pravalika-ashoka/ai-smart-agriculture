@@ -17,3 +17,4 @@ groq
 edge-tts
 pillow
 onnxruntime
+psycopg2-binary
