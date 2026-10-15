@@ -3,6 +3,7 @@ name: Refresh Karnataka Market Data
 on:
   workflow_dispatch:
   schedule:
+    # Runs daily at 02:30 AM IST (21:00 UTC)
     - cron: "0 21 * * *"
 
 permissions:
@@ -18,15 +19,24 @@ jobs:
     timeout-minutes: 60
 
     steps:
+      # --------------------------------------------------
+      # 1. Check out repository
+      # --------------------------------------------------
       - name: Check out repository
         uses: actions/checkout@v4
 
+      # --------------------------------------------------
+      # 2. Set up Python
+      # --------------------------------------------------
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      -      - name: Diagnose Data.gov.in connectivity
+      # --------------------------------------------------
+      # 3. Diagnose Data.gov.in connectivity
+      # --------------------------------------------------
+      - name: Diagnose Data.gov.in connectivity
         run: |
           python - <<'PY'
           import socket
@@ -35,17 +45,22 @@ jobs:
           host = "api.data.gov.in"
           port = 443
 
-          print("Checking runner information...")
-          print(f"Python socket timeout test for {host}:{port}")
+          print("=" * 60)
+          print("DATA.GOV.IN CONNECTIVITY DIAGNOSTICS")
+          print("=" * 60)
 
           try:
               addresses = sorted({
                   item[4][0]
                   for item in socket.getaddrinfo(
-                      host, port, type=socket.SOCK_STREAM
+                      host,
+                      port,
+                      type=socket.SOCK_STREAM,
                   )
               })
+
               print(f"Resolved addresses: {addresses}")
+
           except OSError as exc:
               print(f"DNS error: {exc!r}")
               raise
@@ -55,35 +70,55 @@ jobs:
 
               try:
                   with socket.create_connection(
-                      (address, port), timeout=10
+                      (address, port),
+                      timeout=10,
                   ):
                       print("TCP connection succeeded.")
+
               except OSError as exc:
                   print(f"TCP connection failed: {exc!r}")
 
           print("\nTesting HTTPS using curl...")
-          result = subprocess.run(
-              [
-                  "curl",
-                  "-sS",
-                  "-o", "/dev/null",
-                  "-w", "HTTP status: %{http_code}\n",
-                  "--connect-timeout", "10",
-                  "--max-time", "20",
-                  "https://api.data.gov.in/",
-              ],
-              capture_output=True,
-              text=True,
-              timeout=25,
-          )
 
-          print(result.stdout)
-          if result.stderr:
-              print(f"curl diagnostics: {result.stderr.strip()}")
+          try:
+              result = subprocess.run(
+                  [
+                      "curl",
+                      "-sS",
+                      "-o",
+                      "/dev/null",
+                      "-w",
+                      "HTTP status: %{http_code}\n",
+                      "--connect-timeout",
+                      "10",
+                      "--max-time",
+                      "20",
+                      "https://api.data.gov.in/",
+                  ],
+                  capture_output=True,
+                  text=True,
+                  timeout=25,
+              )
 
-          print(f"curl exit code: {result.returncode}")
+              print(result.stdout)
+
+              if result.stderr:
+                  print(
+                      "curl diagnostics: "
+                      + result.stderr.strip()
+                  )
+
+              print(f"curl exit code: {result.returncode}")
+
+          except subprocess.TimeoutExpired:
+              print("curl timed out after 25 seconds.")
+
           print("\nConnectivity diagnostics completed.")
           PY
+
+      # --------------------------------------------------
+      # 4. Fetch official Data.gov.in market data
+      # --------------------------------------------------
       - name: Fetch official Data.gov.in market data
         env:
           DATA_GOV_API_KEY: ${{ secrets.DATA_GOV_API_KEY }}
@@ -100,7 +135,9 @@ jobs:
           from urllib.request import Request, urlopen
 
           RESOURCE_ID = "9ef84268-d588-465a-a308-a864a43d0070"
-          API_URL = f"https://api.data.gov.in/resource/{RESOURCE_ID}"
+          API_URL = (
+              f"https://api.data.gov.in/resource/{RESOURCE_ID}"
+          )
 
           STATE = "Karnataka"
           PAGE_SIZE = 100
@@ -108,7 +145,10 @@ jobs:
           MAX_RETRIES = 5
           TIMEOUT = 120
 
-          api_key = os.environ.get("DATA_GOV_API_KEY", "").strip()
+          api_key = os.environ.get(
+              "DATA_GOV_API_KEY",
+              "",
+          ).strip()
 
           if not api_key:
               raise RuntimeError(
@@ -135,7 +175,10 @@ jobs:
                   )
 
                   try:
-                      with urlopen(request, timeout=TIMEOUT) as response:
+                      with urlopen(
+                          request,
+                          timeout=TIMEOUT,
+                      ) as response:
                           payload = json.loads(
                               response.read().decode("utf-8")
                           )
@@ -156,7 +199,13 @@ jobs:
 
                   except HTTPError as exc:
                       if exc.code not in (
-                          408, 425, 429, 500, 502, 503, 504
+                          408,
+                          425,
+                          429,
+                          500,
+                          502,
+                          503,
+                          504,
                       ):
                           raise RuntimeError(
                               f"Data.gov.in returned HTTP {exc.code}. "
@@ -169,7 +218,10 @@ jobs:
                               f"{MAX_RETRIES} attempts."
                           ) from None
 
-                      delay = min(60, 5 * (2 ** attempt)) + random.random()
+                      delay = (
+                          min(60, 5 * (2 ** attempt))
+                          + random.random()
+                      )
 
                       print(
                           f"HTTP {exc.code} at offset {offset}; "
@@ -200,7 +252,10 @@ jobs:
                               f"after {MAX_RETRIES} attempts: {exc!r}"
                           ) from exc
 
-                      delay = min(60, 5 * (2 ** attempt)) + random.random()
+                      delay = (
+                          min(60, 5 * (2 ** attempt))
+                          + random.random()
+                      )
 
                       print(
                           f"Network error at offset {offset}; "
@@ -211,14 +266,19 @@ jobs:
 
               raise RuntimeError("Request retries exhausted.")
 
-          # Fetch all pages into memory before modifying the existing cache.
+          # Fetch every page before modifying the existing cache.
           all_records = []
           offset = 0
 
           while offset < MAX_RECORDS:
-              requested = min(PAGE_SIZE, MAX_RECORDS - offset)
+              requested = min(
+                  PAGE_SIZE,
+                  MAX_RECORDS - offset,
+              )
 
-              print(f"Fetching offset={offset}, limit={requested}")
+              print(
+                  f"Fetching offset={offset}, limit={requested}"
+              )
 
               page = fetch_page(offset, requested)
 
@@ -228,7 +288,10 @@ jobs:
                   print("No more records available.")
                   break
 
-              if not all(isinstance(record, dict) for record in page):
+              if not all(
+                  isinstance(record, dict)
+                  for record in page
+              ):
                   raise RuntimeError(
                       f"Invalid record format at offset {offset}. "
                       "Existing cache preserved."
@@ -237,7 +300,9 @@ jobs:
               all_records.extend(page)
               offset += len(page)
 
-              print(f"Total records fetched: {len(all_records)}")
+              print(
+                  f"Total records fetched: {len(all_records)}"
+              )
 
               if len(page) < requested:
                   print("Final page reached.")
@@ -247,9 +312,11 @@ jobs:
 
           if not all_records:
               raise RuntimeError(
-                  "The API returned no records. Existing cache preserved."
+                  "The API returned no records. "
+                  "Existing cache preserved."
               )
 
+          # Filter Karnataka records locally.
           print("Filtering Karnataka records...")
 
           karnataka_records = []
@@ -274,6 +341,7 @@ jobs:
                   "modal_price": record.get("modal_price"),
               })
 
+          # Remove exact duplicates.
           unique_records = []
           seen = set()
 
@@ -301,9 +369,12 @@ jobs:
                   "Existing cache preserved."
               )
 
+          # Construct cache.
           cache = {
               "success": True,
-              "updated_at": datetime.now(timezone.utc).isoformat(),
+              "updated_at": datetime.now(
+                  timezone.utc
+              ).isoformat(),
               "source": "Data.gov.in",
               "resource_id": RESOURCE_ID,
               "state": STATE,
@@ -311,11 +382,20 @@ jobs:
               "records": unique_records,
           }
 
-          cache_path = Path("backend/data/market_cache.json")
-          cache_path.parent.mkdir(parents=True, exist_ok=True)
+          cache_path = Path(
+              "backend/data/market_cache.json"
+          )
 
-          temporary_path = cache_path.with_suffix(".json.tmp")
+          cache_path.parent.mkdir(
+              parents=True,
+              exist_ok=True,
+          )
 
+          temporary_path = cache_path.with_suffix(
+              ".json.tmp"
+          )
+
+          # Write a temporary file first.
           temporary_path.write_text(
               json.dumps(
                   cache,
@@ -325,7 +405,7 @@ jobs:
               encoding="utf-8",
           )
 
-          # Replace the existing cache only after successful validation.
+          # Replace the old cache only after successful validation.
           temporary_path.replace(cache_path)
 
           print("=" * 60)
@@ -337,6 +417,9 @@ jobs:
           print("=" * 60)
           PY
 
+      # --------------------------------------------------
+      # 5. Commit updated market cache
+      # --------------------------------------------------
       - name: Commit updated market cache
         run: |
           git config user.name "github-actions[bot]"
