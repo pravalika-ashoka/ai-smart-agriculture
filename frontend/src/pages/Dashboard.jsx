@@ -42,6 +42,20 @@ function Dashboard() {
 
 
     // ========================================
+    // SENSOR HISTORY - NEW
+    // ========================================
+
+    const [sensorHistory, setSensorHistory] =
+        useState([]);
+
+    const [historyLoading, setHistoryLoading] =
+        useState(false);
+
+    const [historyError, setHistoryError] =
+        useState("");
+
+
+    // ========================================
     // LANGUAGE
     // ========================================
 
@@ -75,9 +89,15 @@ function Dashboard() {
 
         loadDashboard();
 
+        // NEW: Fetch saved sensor history.
+        fetchSensorHistory();
+
         const interval = setInterval(() => {
 
             refreshSensorData();
+
+            // NEW: Refresh history independently.
+            fetchSensorHistory();
 
         }, 60000);
 
@@ -340,6 +360,90 @@ function Dashboard() {
 
 
     // ========================================
+    // FETCH SENSOR HISTORY - NEW
+    // ========================================
+
+    const fetchSensorHistory = async () => {
+
+        const token = getToken();
+
+        if (!token) {
+            return;
+        }
+
+        try {
+
+            setHistoryLoading(true);
+
+            setHistoryError("");
+
+            const response = await fetch(
+                `${API_URL}/iot/history?limit=50`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            if (response.status === 401) {
+
+                localStorage.removeItem("token");
+
+                navigate("/");
+
+                return;
+
+            }
+
+            if (!response.ok) {
+
+                const errorData = await response
+                    .json()
+                    .catch(() => ({}));
+
+                throw new Error(
+                    errorData.detail ||
+                    "Unable to fetch sensor history."
+                );
+
+            }
+
+            const result = await response.json();
+
+            setSensorHistory(
+                Array.isArray(result.data)
+                    ? result.data
+                    : []
+            );
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Sensor history error:",
+                error
+            );
+
+            setHistoryError(
+                isKannada
+                    ? "ಸೆನ್ಸರ್ ಇತಿಹಾಸವನ್ನು ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ."
+                    : "Unable to load sensor history."
+            );
+
+        }
+
+        finally {
+
+            setHistoryLoading(false);
+
+        }
+
+    };
+
+
+    // ========================================
     // LOGOUT
     // ========================================
 
@@ -360,10 +464,6 @@ function Dashboard() {
 
     const modules = [
 
-        // ========================================
-        // CROP RECOMMENDATION
-        // ========================================
-
         {
             title: isKannada
                 ? "ಬೆಳೆ ಶಿಫಾರಸು"
@@ -377,11 +477,6 @@ function Dashboard() {
 
             path: "/crop",
         },
-
-
-        // ========================================
-        // SOIL ANALYSIS
-        // ========================================
 
         {
             title: isKannada
@@ -397,11 +492,6 @@ function Dashboard() {
             path: "/soil",
         },
 
-
-        // ========================================
-        // FERTILIZER RECOMMENDATION
-        // ========================================
-
         {
             title: isKannada
                 ? "ರಸಗೊಬ್ಬರ ಶಿಫಾರಸು"
@@ -415,11 +505,6 @@ function Dashboard() {
 
             path: "/fertilizer",
         },
-
-
-        // ========================================
-        // IRRIGATION
-        // ========================================
 
         {
             title: isKannada
@@ -435,11 +520,6 @@ function Dashboard() {
             path: "/irrigation",
         },
 
-
-        // ========================================
-        // CROP YIELD PREDICTION
-        // ========================================
-
         {
             title: isKannada
                 ? "ಬೆಳೆ ಇಳುವರಿ ಮುನ್ಸೂಚನೆ"
@@ -453,11 +533,6 @@ function Dashboard() {
 
             path: "/yield",
         },
-
-
-        // ========================================
-        // MARKET PRICE ANALYSIS
-        // ========================================
 
         {
             title: isKannada
@@ -473,11 +548,6 @@ function Dashboard() {
             path: "/market",
         },
 
-
-        // ========================================
-        // PLANT DISEASE DETECTION
-        // ========================================
-
         {
             title: isKannada
                 ? "ಸಸ್ಯ ರೋಗ ಪತ್ತೆ"
@@ -492,11 +562,6 @@ function Dashboard() {
             path: "/disease",
         },
 
-
-        // ========================================
-        // WEATHER
-        // ========================================
-
         {
             title: isKannada
                 ? "ಹವಾಮಾನ"
@@ -510,11 +575,6 @@ function Dashboard() {
 
             path: "/weather",
         },
-
-
-        // ========================================
-        // AI AGRICULTURE ASSISTANT
-        // ========================================
 
         {
             title: isKannada
@@ -541,17 +601,9 @@ function Dashboard() {
 
         <div className="dashboard-page">
 
-
-            {/* ========================================
-                HEADER
-            ======================================== */}
+            {/* HEADER */}
 
             <header className="dashboard-header">
-
-
-                {/* ========================================
-                    AI SMART AGRICULTURE BRAND
-                ======================================== */}
 
                 <div className="dashboard-brand">
 
@@ -578,10 +630,7 @@ function Dashboard() {
 
                 <div className="dashboard-header-actions">
 
-
-                    {/* ========================================
-                        LANGUAGE SWITCH
-                    ======================================== */}
+                    {/* LANGUAGE SWITCH */}
 
                     <div className="language-switcher">
 
@@ -615,9 +664,7 @@ function Dashboard() {
                     </div>
 
 
-                    {/* ========================================
-                        AI ASSISTANT
-                    ======================================== */}
+                    {/* AI ASSISTANT */}
 
                     <button
                         className="ai-assistant-button"
@@ -639,9 +686,7 @@ function Dashboard() {
                     </button>
 
 
-                    {/* ========================================
-                        PROFILE
-                    ======================================== */}
+                    {/* PROFILE */}
 
                     <button
                         className="dashboard-profile-button"
@@ -663,16 +708,12 @@ function Dashboard() {
                     </button>
 
 
-                    {/* ========================================
-                        NOTIFICATIONS
-                    ======================================== */}
+                    {/* NOTIFICATIONS */}
 
                     <NotificationBell />
 
 
-                    {/* ========================================
-                        LOGOUT
-                    ======================================== */}
+                    {/* LOGOUT */}
 
                     <button
                         className="dashboard-logout"
@@ -683,7 +724,6 @@ function Dashboard() {
                             : "Logout"}
                     </button>
 
-
                 </div>
 
             </header>
@@ -691,10 +731,7 @@ function Dashboard() {
 
             <main>
 
-
-                {/* ========================================
-                    WELCOME
-                ======================================== */}
+                {/* WELCOME */}
 
                 <section className="dashboard-welcome">
 
@@ -724,15 +761,11 @@ function Dashboard() {
                 </section>
 
 
-                {/* ========================================
-                    SENSOR SECTION
-                ======================================== */}
+                {/* SENSOR SECTION */}
 
                 <section className="sensor-section">
 
-
                     <div className="section-title">
-
 
                         <div>
 
@@ -783,12 +816,9 @@ function Dashboard() {
                     </div>
 
 
-                    {/* ========================================
-                        REFRESH CONTROLS
-                    ======================================== */}
+                    {/* REFRESH CONTROLS */}
 
                     <div className="sensor-refresh-bar">
-
 
                         <div className="last-updated">
 
@@ -830,9 +860,7 @@ function Dashboard() {
                     </div>
 
 
-                    {/* ========================================
-                        LOADING
-                    ======================================== */}
+                    {/* LOADING */}
 
                     {loading && (
 
@@ -847,9 +875,7 @@ function Dashboard() {
                     )}
 
 
-                    {/* ========================================
-                        ERROR
-                    ======================================== */}
+                    {/* ERROR */}
 
                     {!loading &&
                         sensorError && (
@@ -863,16 +889,11 @@ function Dashboard() {
                         )}
 
 
-                    {/* ========================================
-                        SENSOR DATA
-                    ======================================== */}
+                    {/* SENSOR DATA */}
 
                     {sensorData && (
 
                         <div className="sensor-grid">
-
-
-                            {/* TEMPERATURE */}
 
                             <div className="sensor-card">
 
@@ -889,15 +910,11 @@ function Dashboard() {
                                 </span>
 
                                 <strong>
-
                                     {sensorData.temperature ?? "--"} °C
-
                                 </strong>
 
                             </div>
 
-
-                            {/* HUMIDITY */}
 
                             <div className="sensor-card">
 
@@ -914,15 +931,11 @@ function Dashboard() {
                                 </span>
 
                                 <strong>
-
                                     {sensorData.humidity ?? "--"} %
-
                                 </strong>
 
                             </div>
 
-
-                            {/* SOIL MOISTURE */}
 
                             <div className="sensor-card">
 
@@ -939,15 +952,11 @@ function Dashboard() {
                                 </span>
 
                                 <strong>
-
                                     {sensorData.soil_moisture ?? "--"} %
-
                                 </strong>
 
                             </div>
 
-
-                            {/* SOIL PH */}
 
                             <div className="sensor-card">
 
@@ -964,15 +973,11 @@ function Dashboard() {
                                 </span>
 
                                 <strong>
-
                                     {sensorData.ph ?? "--"}
-
                                 </strong>
 
                             </div>
 
-
-                            {/* NITROGEN */}
 
                             <div className="sensor-card">
 
@@ -989,15 +994,11 @@ function Dashboard() {
                                 </span>
 
                                 <strong>
-
                                     {sensorData.nitrogen ?? "--"}
-
                                 </strong>
 
                             </div>
 
-
-                            {/* PHOSPHORUS */}
 
                             <div className="sensor-card">
 
@@ -1014,15 +1015,11 @@ function Dashboard() {
                                 </span>
 
                                 <strong>
-
                                     {sensorData.phosphorus ?? "--"}
-
                                 </strong>
 
                             </div>
 
-
-                            {/* POTASSIUM */}
 
                             <div className="sensor-card">
 
@@ -1039,15 +1036,11 @@ function Dashboard() {
                                 </span>
 
                                 <strong>
-
                                     {sensorData.potassium ?? "--"}
-
                                 </strong>
 
                             </div>
 
-
-                            {/* RAINFALL */}
 
                             <div className="sensor-card">
 
@@ -1064,15 +1057,11 @@ function Dashboard() {
                                 </span>
 
                                 <strong>
-
                                     {sensorData.rainfall ?? "--"} mm
-
                                 </strong>
 
                             </div>
 
-
-                            {/* SENSOR STATUS */}
 
                             <div className="sensor-card">
 
@@ -1098,7 +1087,6 @@ function Dashboard() {
 
                             </div>
 
-
                         </div>
 
                     )}
@@ -1107,11 +1095,170 @@ function Dashboard() {
 
 
                 {/* ========================================
-                    SMART AGRICULTURE MODULES
+                    SENSOR HISTORY - NEW
                 ======================================== */}
 
-                <section className="module-section">
+                <section className="sensor-history-section">
 
+                    <div className="section-title">
+
+                        <div>
+
+                            <h2>
+                                📊{" "}
+                                {isKannada
+                                    ? "ಸೆನ್ಸರ್ ಇತಿಹಾಸ"
+                                    : "Sensor Reading History"}
+                            </h2>
+
+                            <p>
+                                {isKannada
+                                    ? "ಡೇಟಾಬೇಸ್‌ನಲ್ಲಿ ಉಳಿಸಿದ ಹಿಂದಿನ ಸೆನ್ಸರ್ ರೀಡಿಂಗ್‌ಗಳು."
+                                    : "Previously saved sensor readings from the database."}
+                            </p>
+
+                        </div>
+
+                        <button
+                            type="button"
+                            className="refresh-sensor-button"
+                            onClick={fetchSensorHistory}
+                            disabled={historyLoading}
+                        >
+                            {historyLoading
+                                ? (
+                                    isKannada
+                                        ? "ಲೋಡ್ ಆಗುತ್ತಿದೆ..."
+                                        : "Loading..."
+                                )
+                                : (
+                                    isKannada
+                                        ? "ಇತಿಹಾಸ ನವೀಕರಿಸಿ"
+                                        : "Refresh History"
+                                )}
+                        </button>
+
+                    </div>
+
+
+                    {historyError && (
+
+                        <div className="sensor-message error">
+                            {historyError}
+                        </div>
+
+                    )}
+
+
+                    {!historyError &&
+                        !historyLoading &&
+                        sensorHistory.length === 0 && (
+
+                            <p>
+                                {isKannada
+                                    ? "ಯಾವುದೇ ಹಿಂದಿನ ರೀಡಿಂಗ್‌ಗಳು ಲಭ್ಯವಿಲ್ಲ."
+                                    : "No historical readings available."}
+                            </p>
+
+                        )}
+
+
+                    {sensorHistory.length > 0 && (
+
+                        <div className="sensor-history-table-wrapper">
+
+                            <table className="sensor-history-table">
+
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Moisture (%)</th>
+                                        <th>Temperature (°C)</th>
+                                        <th>Humidity (%)</th>
+                                        <th>Rainfall</th>
+                                        <th>N</th>
+                                        <th>P</th>
+                                        <th>K</th>
+                                        <th>pH</th>
+                                        <th>Recorded At</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+
+                                    {sensorHistory.map((reading) => (
+
+                                        <tr key={reading.id}>
+
+                                            <td>{reading.id}</td>
+
+                                            <td>
+                                                {reading.soil_moisture ?? "--"}
+                                            </td>
+
+                                            <td>
+                                                {reading.temperature ?? "--"}
+                                            </td>
+
+                                            <td>
+                                                {reading.humidity ?? "--"}
+                                            </td>
+
+                                            <td>
+                                                {reading.rainfall ?? "--"}
+                                            </td>
+
+                                            <td>
+                                                {reading.nitrogen ?? "--"}
+                                            </td>
+
+                                            <td>
+                                                {reading.phosphorus ?? "--"}
+                                            </td>
+
+                                            <td>
+                                                {reading.potassium ?? "--"}
+                                            </td>
+
+                                            <td>
+                                                {reading.ph ?? "--"}
+                                            </td>
+
+                                            <td>
+                                                {reading.recorded_at
+                                                    ? new Date(
+                                                        reading.recorded_at
+                                                    ).toLocaleString()
+                                                    : "--"}
+                                            </td>
+
+                                        </tr>
+
+                                    ))}
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    )}
+
+
+                    <p className="sensor-history-count">
+
+                        {isKannada
+                            ? `ತೋರಿಸಲಾದ ಒಟ್ಟು ರೀಡಿಂಗ್‌ಗಳು: ${sensorHistory.length}`
+                            : `Total readings displayed: ${sensorHistory.length}`}
+
+                    </p>
+
+                </section>
+
+
+                {/* SMART AGRICULTURE MODULES */}
+
+                <section className="module-section">
 
                     <div className="section-title">
 
@@ -1153,23 +1300,17 @@ function Dashboard() {
                                 >
 
                                     <div className="icon">
-
                                         {module.icon}
-
                                     </div>
 
 
                                     <h3>
-
                                         {module.title}
-
                                     </h3>
 
 
                                     <p>
-
                                         {module.description}
-
                                     </p>
 
 
@@ -1189,7 +1330,6 @@ function Dashboard() {
                     </div>
 
                 </section>
-
 
             </main>
 

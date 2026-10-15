@@ -189,3 +189,102 @@
     }
 
 }
+
+/* =========================================
+   SENSOR HISTORY
+========================================= */
+
+.sensor-history-section {
+    width: 100%;
+    margin-top: 30px;
+    padding: 24px;
+    background: #ffffff;
+    border: 1px solid #e3eadf;
+    border-radius: 14px;
+    box-sizing: border-box;
+}
+
+.sensor-history-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+.sensor-history-header h2 {
+    margin: 0 0 8px;
+}
+
+.sensor-history-header p {
+    margin: 0;
+    color: #647067;
+    line-height: 1.5;
+}
+
+.sensor-history-count {
+    margin-bottom: 12px;
+    color: #48634d;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.sensor-history-message {
+    padding: 18px 0;
+    color: #647067;
+}
+
+.sensor-history-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #e1e8df;
+    border-radius: 10px;
+}
+
+.sensor-history-table {
+    width: 100%;
+    min-width: 1050px;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.sensor-history-table th,
+.sensor-history-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #e8eee6;
+    white-space: nowrap;
+    font-size: 14px;
+}
+
+.sensor-history-table th {
+    background: #edf5e9;
+    color: #294d2c;
+    font-weight: 700;
+}
+
+.sensor-history-table tbody tr:nth-child(even) {
+    background: #f8fbf7;
+}
+
+.sensor-history-table tbody tr:hover {
+    background: #eef7eb;
+}
+
+.sensor-history-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+@media (max-width: 600px) {
+    .sensor-history-section {
+        padding: 16px;
+    }
+
+    .sensor-history-header {
+        align-items: stretch;
+    }
+
+    .sensor-history-header .iot-button {
+        width: 100%;
+    }
+}

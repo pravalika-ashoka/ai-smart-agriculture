@@ -17,6 +17,14 @@ function IoT() {
     const [error, setError] = useState("");
     const [lastUpdated, setLastUpdated] = useState(null);
 
+    // ================================================
+    // SENSOR HISTORY - NEW
+    // ================================================
+
+    const [sensorHistory, setSensorHistory] = useState([]);
+    const [historyLoading, setHistoryLoading] = useState(false);
+    const [historyError, setHistoryError] = useState("");
+
     // =====================================================
     // FETCH LATEST SENSOR DATA
     // =====================================================
@@ -119,6 +127,73 @@ function IoT() {
     }, []);
 
     // =====================================================
+    // FETCH SENSOR HISTORY - NEW
+    // =====================================================
+
+    const fetchSensorHistory = useCallback(async () => {
+        try {
+            setHistoryLoading(true);
+            setHistoryError("");
+
+            const response = await api.get(
+                "/iot/history",
+                {
+                    params: {
+                        limit: 50
+                    }
+                }
+            );
+
+            console.log(
+                "IoT history response:",
+                response.data
+            );
+
+            const result = response.data;
+
+            setSensorHistory(
+                Array.isArray(result?.data)
+                    ? result.data
+                    : []
+            );
+
+        } catch (err) {
+            console.error(
+                "Failed to fetch IoT sensor history:",
+                err
+            );
+
+            if (err.response) {
+
+                if (err.response.status === 401) {
+                    setHistoryError(
+                        "Authentication expired. Please login again."
+                    );
+
+                } else if (err.response.status === 429) {
+                    setHistoryError(
+                        "Too many requests. Please wait a moment."
+                    );
+
+                } else {
+                    setHistoryError(
+                        err.response.data?.detail ||
+                        "Unable to fetch sensor history."
+                    );
+                }
+
+            } else {
+                setHistoryError(
+                    "Unable to connect to the agriculture backend for sensor history."
+                );
+            }
+
+        } finally {
+            setHistoryLoading(false);
+        }
+    }, []);
+
+    // =====================================================
     // INITIAL FETCH + SAFE POLLING
     // =====================================================
 
@@ -133,13 +208,19 @@ function IoT() {
                 return;
             }
 
+            // Existing live sensor request.
             await fetchSensorData();
+
+            // NEW: Load previously saved database readings.
+            if (active) {
+                await fetchSensorHistory();
+            }
         };
 
-        // Fetch immediately
+        // Fetch immediately.
         loadData();
 
-        // Poll only every 30 seconds
+        // Existing polling interval remains 30 seconds.
         interval = setInterval(() => {
             loadData();
         }, 30000);
@@ -153,7 +234,7 @@ function IoT() {
             }
         };
 
-    }, [fetchSensorData]);
+    }, [fetchSensorData, fetchSensorHistory]);
 
     // =====================================================
     // MANUAL REFRESH
@@ -163,7 +244,12 @@ function IoT() {
 
         setLoading(true);
 
-        await fetchSensorData();
+        // Preserve the existing live-data refresh and
+        // additionally refresh the saved reading history.
+        await Promise.all([
+            fetchSensorData(),
+            fetchSensorHistory()
+        ]);
     };
 
     // =====================================================
@@ -177,6 +263,25 @@ function IoT() {
         }
 
         return lastUpdated.toLocaleTimeString();
+    };
+
+    // =====================================================
+    // FORMAT HISTORY TIMESTAMP - NEW
+    // =====================================================
+
+    const formatRecordedAt = (value) => {
+
+        if (!value) {
+            return "--";
+        }
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+            return value;
+        }
+
+        return date.toLocaleString();
     };
 
     // =====================================================
@@ -215,7 +320,7 @@ function IoT() {
             <div className="iot-container">
 
                 {/* =================================================
-                    SENSOR FORM / DATA
+                    EXISTING SENSOR FORM / DATA
                 ================================================= */}
 
                 <div className="iot-form">
@@ -375,9 +480,7 @@ function IoT() {
                     </div>
 
 
-                    {/* =================================================
-                        REFRESH BUTTON
-                    ================================================= */}
+                    {/* EXISTING REFRESH BUTTON */}
 
                     <button
                         type="button"
@@ -397,7 +500,7 @@ function IoT() {
 
 
                 {/* =================================================
-                    STATUS
+                    EXISTING STATUS
                 ================================================= */}
 
                 <div className="iot-status">
@@ -427,9 +530,7 @@ function IoT() {
                     </div>
 
 
-                    {/* =================================================
-                        SENSOR CARDS
-                    ================================================= */}
+                    {/* EXISTING SENSOR CARDS */}
 
                     <div className="sensor-cards">
 
@@ -547,9 +648,7 @@ function IoT() {
                     </div>
 
 
-                    {/* =================================================
-                        LAST UPDATED
-                    ================================================= */}
+                    {/* EXISTING LAST UPDATED */}
 
                     <div className="last-updated">
 
@@ -562,21 +661,166 @@ function IoT() {
                     </div>
 
 
-                    {/* =================================================
-                        ERROR
-                    ================================================= */}
+                    {/* EXISTING ERROR */}
 
                     {error && (
 
                         <div className="iot-error">
-
                             {error}
-
                         </div>
 
                     )}
 
                 </div>
+
+
+                {/* =================================================
+                    NEW SENSOR HISTORY SECTION
+                ================================================= */}
+
+                <section className="iot-history">
+
+                    <h2>
+                        📊 Sensor Reading History
+                    </h2>
+
+                    <p>
+                        Previously saved sensor readings from the database.
+                    </p>
+
+
+                    <button
+                        type="button"
+                        className="iot-button"
+                        onClick={fetchSensorHistory}
+                        disabled={historyLoading}
+                    >
+                        {historyLoading
+                            ? "Loading History..."
+                            : "Refresh History"
+                        }
+                    </button>
+
+
+                    {historyError && (
+
+                        <div className="iot-error" role="alert">
+                            {historyError}
+                        </div>
+
+                    )}
+
+
+                    {historyLoading && (
+
+                        <p>
+                            Loading sensor history...
+                        </p>
+
+                    )}
+
+
+                    {!historyLoading &&
+                        !historyError &&
+                        sensorHistory.length === 0 && (
+
+                            <p>
+                                No historical sensor readings available.
+                            </p>
+
+                        )}
+
+
+                    {sensorHistory.length > 0 && (
+
+                        <div className="iot-history-table-wrapper">
+
+                            <table className="iot-history-table">
+
+                                <thead>
+
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Recorded At</th>
+                                        <th>Soil Moisture (%)</th>
+                                        <th>Temperature (°C)</th>
+                                        <th>Humidity (%)</th>
+                                        <th>Rainfall</th>
+                                        <th>Nitrogen</th>
+                                        <th>Phosphorus</th>
+                                        <th>Potassium</th>
+                                        <th>Soil pH</th>
+                                    </tr>
+
+                                </thead>
+
+
+                                <tbody>
+
+                                    {sensorHistory.map((reading) => (
+
+                                        <tr key={reading.id}>
+
+                                            <td>
+                                                {reading.id}
+                                            </td>
+
+                                            <td>
+                                                {formatRecordedAt(
+                                                    reading.recorded_at
+                                                )}
+                                            </td>
+
+                                            <td>
+                                                {reading.soil_moisture ?? "--"}
+                                            </td>
+
+                                            <td>
+                                                {reading.temperature ?? "--"}
+                                            </td>
+
+                                            <td>
+                                                {reading.humidity ?? "--"}
+                                            </td>
+
+                                            <td>
+                                                {reading.rainfall ?? "--"}
+                                            </td>
+
+                                            <td>
+                                                {reading.nitrogen ?? "--"}
+                                            </td>
+
+                                            <td>
+                                                {reading.phosphorus ?? "--"}
+                                            </td>
+
+                                            <td>
+                                                {reading.potassium ?? "--"}
+                                            </td>
+
+                                            <td>
+                                                {reading.ph ?? "--"}
+                                            </td>
+
+                                        </tr>
+
+                                    ))}
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    )}
+
+
+                    <p className="sensor-history-count">
+                        Total readings displayed: {sensorHistory.length}
+                    </p>
+
+                </section>
 
             </div>
 
