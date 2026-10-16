@@ -1,0 +1,1 @@
+backend/app/ml_models/saved_models/fertilizer_random_forest.pkl filter=lfs diff=lfs merge=lfs -text
